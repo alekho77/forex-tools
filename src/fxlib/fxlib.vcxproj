@@ -133,9 +133,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="fxcurrencies.h" />
     <ClInclude Include="fxtime.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="fxcurrencies.cpp" />
     <ClCompile Include="fxtime.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

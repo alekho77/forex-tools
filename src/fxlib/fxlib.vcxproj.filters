@@ -18,9 +18,15 @@
     <ClInclude Include="fxtime.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fxcurrencies.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fxtime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fxcurrencies.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
