@@ -8,8 +8,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 
+#include <vector>
 #include <string>
+#include <tuple>
 #include <iostream>
+#include <algorithm>
+#include <iterator>
 
 template <typename From, typename To>
 To str_convert(const From& str) {
@@ -60,9 +64,16 @@ int main(int argc, char* argv[])
     return ec.value();
   }
   out_path.append(out_file.filename().c_str());
+  if (boost::filesystem::exists(out_path)) {
+    // TODO: add hash checking to be sure that really nothing to do.
+    cout << "The binary file " << out_path << " already exists. Nothing to do." << endl;
+    return boost::system::errc::success;
+  }
 
   cout << "Compile all [" << pair_name << "]-files in " << src_path << " to binary file " << out_path << endl;
 
+  vector<tuple<boost::filesystem::path, boost::gregorian::date_period>> src_list;
+  
   const boost::regex fmask("^" + pair_name + "_([0-9]{6})_([0-9]{6})\\.txt$");
   for (auto entry : boost::make_iterator_range(boost::filesystem::directory_iterator(src_path), {})) {
     boost::smatch what;
@@ -71,13 +82,24 @@ int main(int argc, char* argv[])
       if (boost::regex_match(filename, what, fmask)) {
         const boost::gregorian::date_period period(boost::gregorian::from_undelimited_string("20" + what[1].str()),
                                                    boost::gregorian::from_undelimited_string("20" + what[2].str()) + boost::gregorian::date_duration(1));
-        cout << "Compiling " << filename << " " << period;
-
-        cout << endl;
+        src_list.push_back(make_tuple(entry.path(), period));
+        //cout << "Compiling " << filename << " " << period;
+        //cout << endl;
       }
     }
   }
 
+  if (src_list.empty()) {
+    cout << "No one source file has been found!" << endl;
+    return boost::system::errc::no_such_file_or_directory;
+  }
+
+  cout << "Found " << src_list.size() << " source files" << endl;
+  sort(begin(src_list), end(src_list), [](const auto& a, const auto& b) { return get<1>(a) < get<1>(b); });
   
-  return 0;
+  if (src_list.size() > 1) {
+  }
+
+
+  return boost::system::errc::success;
 }
