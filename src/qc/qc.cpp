@@ -83,8 +83,6 @@ int main(int argc, char* argv[])
         const boost::gregorian::date_period period(boost::gregorian::from_undelimited_string("20" + what[1].str()),
                                                    boost::gregorian::from_undelimited_string("20" + what[2].str()) + boost::gregorian::date_duration(1));
         src_list.push_back(make_tuple(entry.path(), period));
-        //cout << "Compiling " << filename << " " << period;
-        //cout << endl;
       }
     }
   }
@@ -94,12 +92,19 @@ int main(int argc, char* argv[])
     return boost::system::errc::no_such_file_or_directory;
   }
 
-  cout << "Found " << src_list.size() << " source files" << endl;
   sort(begin(src_list), end(src_list), [](const auto& a, const auto& b) { return get<1>(a) < get<1>(b); });
   
-  if (src_list.size() > 1) {
+  boost::gregorian::date_period total_period = get<1>(src_list[0]);
+  for (size_t i = 1; i < src_list.size(); i++) {
+    if (total_period.is_adjacent(get<1>(src_list[i]))) {
+      total_period = total_period.span(get<1>(src_list[i]));
+    } else {
+      cout << "There is a gap between " << get<0>(src_list[i - 1]) << " and " << get<0>(src_list[i]) << endl;
+      return boost::system::errc::argument_out_of_domain;
+    }
   }
 
+  cout << "Found " << src_list.size() << " source files with total period " << total_period << endl;
 
   return boost::system::errc::success;
 }
