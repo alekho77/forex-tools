@@ -3,6 +3,7 @@
 
 #include "fxlib/fxcurrencies.h"
 #include "fxlib/fxtime.h"
+#include "fxlib/fxquote.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -105,6 +106,8 @@ int main(int argc, char* argv[])
   }
 
   cout << "Found " << src_list.size() << " source files with total period " << total_period << endl;
+
+  cout << sizeof(fxlib::candle);
 
   return boost::system::errc::success;
 }
