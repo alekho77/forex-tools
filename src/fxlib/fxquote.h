@@ -13,9 +13,6 @@ enum class periodicity {
 #pragma pack(push, 1)
 
 struct alignas(1) candle {
-  uint16_t  date;
-  uint16_t  time;
-  uint32_t  volume;
   double    open;
   double    close;
   double    high;
