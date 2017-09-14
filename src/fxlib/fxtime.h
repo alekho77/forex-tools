@@ -11,7 +11,7 @@ namespace fxlib {
 #pragma pack(push, 1)
 
 struct alignas(1) fxtime {
-  std::array<uint8_t, 8> data = {0};  // iso time string (like 20020131T235959) packed with BCD
+  std::array<uint8_t, 8> data;  // iso time string (like 20020131T235959) packed with BCD
 };
 
 #pragma pack(pop)
@@ -46,6 +46,7 @@ static inline std::istream& operator >> (std::istream& in, fxtime& time) {
   std::string str;
   in >> str;
   if (str.length() == 15 && str[8] == 'T') {
+    valid = true;
     auto ib = std::begin(time.data);
     for (size_t i = 0; i < 15; ++i, ++ib) {
       if (i == 8) {
