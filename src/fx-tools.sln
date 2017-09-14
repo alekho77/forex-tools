@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fxlib", "fxlib\fxlib.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qc", "qc\qc.vcxproj", "{353F89CE-40A2-4F04-BEA0-C897C81E0CAA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fxlib-test", "fxlib-test\fxlib-test.vcxproj", "{3043C193-4F09-4410-A22F-3BA9B4DC8571}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{353F89CE-40A2-4F04-BEA0-C897C81E0CAA}.Release|x64.Build.0 = Release|x64
 		{353F89CE-40A2-4F04-BEA0-C897C81E0CAA}.Release|x86.ActiveCfg = Release|Win32
 		{353F89CE-40A2-4F04-BEA0-C897C81E0CAA}.Release|x86.Build.0 = Release|Win32
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Debug|x64.ActiveCfg = Debug|x64
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Debug|x64.Build.0 = Debug|x64
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Debug|x86.ActiveCfg = Debug|Win32
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Debug|x86.Build.0 = Debug|Win32
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Release|x64.ActiveCfg = Release|x64
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Release|x64.Build.0 = Release|x64
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Release|x86.ActiveCfg = Release|Win32
+		{3043C193-4F09-4410-A22F-3BA9B4DC8571}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
