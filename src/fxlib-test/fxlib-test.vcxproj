@@ -71,22 +71,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -156,6 +156,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="fxtime_test.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\fxlib\fxlib.vcxproj">
+      <Project>{bca1545f-d487-46d6-ab26-c27a22efd056}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
