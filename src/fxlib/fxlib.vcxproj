@@ -134,6 +134,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="fxcurrencies.h" />
+    <ClInclude Include="fxlib.h" />
     <ClInclude Include="fxquote.h" />
     <ClInclude Include="fxtime.h" />
     <ClInclude Include="fxtime_conversion.h" />

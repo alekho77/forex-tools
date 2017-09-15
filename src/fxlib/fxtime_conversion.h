@@ -1,12 +1,12 @@
 #pragma once
 
+#include "fxtime.h"
+
 #include <boost/lexical_cast.hpp>
 
 #include <iostream>
 
 namespace fxlib {
-
-struct alignas(1) fxtime;
 
 static inline std::ostream& operator << (std::ostream& out, const fxtime& time) noexcept {
   bool valid = false;

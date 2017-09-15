@@ -1,6 +1,5 @@
 
-#include "fxlib/fxtime.h"
-#include "fxlib/fxtime_conversion.h"
+#include "fxlib/fxlib.h"
 
 #include <gtest/gtest.h>
 

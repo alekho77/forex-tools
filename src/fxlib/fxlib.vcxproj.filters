@@ -27,6 +27,9 @@
     <ClInclude Include="fxtime_conversion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fxlib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fxtime.cpp">

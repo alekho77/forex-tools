@@ -1,9 +1,7 @@
 // qc.cpp : Defines the entry point for the console application.
 //
 
-#include "fxlib/fxcurrencies.h"
-#include "fxlib/fxtime.h"
-#include "fxlib/fxquote.h"
+#include "fxlib/fxlib.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
