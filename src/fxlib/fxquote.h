@@ -22,6 +22,12 @@ struct fxcandle {
 };
 
 struct fxsequence {
+  fxsequence() = delete;
+  ~fxsequence() = delete;
+  fxsequence(const fxsequence&) = delete;
+  fxsequence(fxsequence&&) = delete;
+  fxsequence& operator = (const fxsequence&) = delete;
+  fxsequence& operator = (fxsequence&&) = delete;
   
   struct {
     uint32_t count;        // total number of candles.
@@ -32,7 +38,7 @@ struct fxsequence {
   struct {
     fxtime time;
     fxcandle candle;
-  } entries[];
+  } entries[1];
 };
 
 #pragma pack(pop)

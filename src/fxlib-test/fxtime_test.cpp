@@ -12,7 +12,7 @@ protected:
   const fxlib::fxtime correct_fxtime = {{0x20, 0x17, 0x09, 0x14, 0xDD, 0x17, 0x54, 0x31}};
   const std::string correct_time_str = "20170914T175431";
   const boost::posix_time::ptime correct_ptime = { {2017, boost::date_time::Sep, 14}, {17, 54, 31} };
-  const uint64_t correct_time_int = 0x315417DD14091720ui64;
+  const uint64_t correct_time_int = 0x20170914DD175431ui64;
 
   const fxlib::fxtime invalid_fxtime = {{0x00, 0x00, 0x55, 0x66, 0xDD, 0x77, 0x88, 0x99}};
   const std::string invalid_time_str = "00005566T778899";
@@ -171,12 +171,5 @@ TEST_F(fxtime_test_fixture, ptime_try_cast_to_fxtime) {
 }
 
 TEST_F(fxtime_test_fixture, cast_to_int) {
-  {
-    uint64_t time = fxlib::fxtime::to_int(correct_fxtime);
-    EXPECT_EQ(correct_time_int, time);
-  }
-  {
-    fxlib::fxtime time = fxlib::fxtime::from_int(correct_time_int);
-    EXPECT_EQ(correct_fxtime.data, time.data);
-  }
+  EXPECT_EQ(correct_time_int, correct_fxtime.to_int());
 }
