@@ -24,13 +24,13 @@
     <ClInclude Include="fxquote.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fxtime_conversion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="fxlib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fxmath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\fxtime_conversion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
