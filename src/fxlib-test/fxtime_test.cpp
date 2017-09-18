@@ -1,5 +1,5 @@
 
-#include "fxlib/fxlib.h"
+#include "fxlib/helpers/fxtime_conversion.h"
 
 #include <gtest/gtest.h>
 
@@ -168,8 +168,4 @@ TEST_F(fxtime_test_fixture, ptime_try_cast_to_fxtime) {
     EXPECT_NO_THROW(str = boost::posix_time::to_iso_string(invalid_ptime));
     EXPECT_FALSE(fxlib::try_from_iso_string(str, time));
   }
-}
-
-TEST_F(fxtime_test_fixture, cast_to_int) {
-  EXPECT_EQ(correct_time_int, correct_fxtime.to_int());
 }

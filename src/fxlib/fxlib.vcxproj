@@ -139,6 +139,7 @@
     <ClInclude Include="fxquote.h" />
     <ClInclude Include="fxtime.h" />
     <ClInclude Include="helpers\fxtime_conversion.h" />
+    <ClInclude Include="helpers\fxtime_serializable.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fxcurrencies.cpp" />

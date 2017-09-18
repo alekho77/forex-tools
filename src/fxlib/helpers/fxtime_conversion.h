@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fxtime.h"
+#include "fxtime_serializable.h"
 
 #include <boost/lexical_cast.hpp>
 
