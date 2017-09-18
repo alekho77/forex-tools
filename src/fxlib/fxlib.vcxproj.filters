@@ -41,5 +41,8 @@
     <ClCompile Include="fxcurrencies.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fxquote.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

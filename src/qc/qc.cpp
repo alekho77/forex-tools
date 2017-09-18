@@ -105,7 +105,11 @@ int main(int argc, char* argv[])
 
   cout << "Found " << src_list.size() << " source files with total period " << total_period << endl;
 
-  cout << sizeof(fxlib::fxsequence);
+  cout << sizeof(fxlib::fxcandle) << endl;
+
+  fxlib::FxSequence seq(total_period);
+
+  cout << seq.Count();
 
   return boost::system::errc::success;
 }
