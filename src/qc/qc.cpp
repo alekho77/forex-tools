@@ -102,14 +102,19 @@ int main(int argc, char* argv[])
       return boost::system::errc::argument_out_of_domain;
     }
   }
-
   cout << "Found " << src_list.size() << " source files with total period " << total_period << endl;
 
-  cout << sizeof(fxlib::fxcandle) << endl;
-
-  fxlib::FxSequence seq(total_period);
-
-  cout << seq.Count();
+  fxlib::fxsequence seq = {fxlib::fxperiodicity::minutely, total_period, {}};
+  seq.candles.reserve(total_period.length().days() * 24 * 60);
+  for (boost::gregorian::day_iterator ditr = {total_period.begin()}; ditr < total_period.end(); ++ditr) {
+    cout << '\r' << "Open period on " << *ditr;
+    const boost::posix_time::time_period open_period = fxlib::ForexOpenHours(*ditr);
+    cout << " has " << (open_period.length().total_seconds() / 60) << " minutes";
+    for (boost::posix_time::time_iterator titr = {open_period.begin(), boost::posix_time::minutes(1)}; titr < open_period.end(); ++titr) {
+      seq.candles.push_back({*titr, 0, 0, 0, 0});
+    }
+  }
+  cout << endl << "Expected total minute candles " << seq.candles.size() << endl;
 
   return boost::system::errc::success;
 }
