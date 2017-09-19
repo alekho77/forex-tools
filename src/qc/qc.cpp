@@ -13,6 +13,7 @@
 #include <iostream>
 #include <algorithm>
 #include <iterator>
+#include <fstream>
 
 template <typename From, typename To>
 To str_convert(const From& str) {
@@ -115,6 +116,33 @@ int main(int argc, char* argv[])
     }
   }
   cout << endl << "Expected total minute candles " << seq.candles.size() << endl;
+
+  ofstream fout(string_narrow(out_path.c_str()), ofstream::binary);
+  try {
+    if (!fout.good()) {
+      throw "Could not open " + string_narrow(out_path.c_str());
+    }
+    try {
+      for (const auto& src : src_list) {
+        ifstream fin(string_narrow(get<0>(src).c_str()));
+        if (fin.good()) {
+          string header;
+          if (!getline(fin, header).good()) {
+            cout << "File " << get<0>(src) << " does not contain a data or read error." << endl;
+            return boost::system::errc::io_error;
+          }
+          fin.close();
+        } else {
+          cout << "Could not open " << get<0>(src) << endl;
+          return boost::system::errc::io_error;
+        }
+      }  // for (const auto& src : src_list)
+    }
+    fout.close();
+  } catch (const string& e) {
+    cout << e << endl;
+    return boost::system::errc::io_error;
+  }
 
   return boost::system::errc::success;
 }
