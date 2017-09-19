@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
   using namespace std;
   cout << "Forex Quotation Compiler" << endl;
   if (argc < 3 || argc > 4) {
+    cout << "[NOTE] Parameters are required" << endl;
     cout << ">qc {src-dir} {pair-name} [out-file]" << endl;
     cout << "    {out-file} is {pair-name}.bin by default." << endl;
     return boost::system::errc::invalid_argument;
@@ -43,13 +44,13 @@ int main(int argc, char* argv[])
   boost::system::error_code ec;
   boost::filesystem::path src_path = boost::filesystem::canonical({argv[1]}, ec);
   if (ec) {
-    cout << "Source directory \"" << argv[1] << "\" has not found" << endl;
+    cout << "[ERROR] Source directory \"" << argv[1] << "\" has not found" << endl;
     return ec.value();
   }
   
   string pair_name = argv[2];
   if (!fxlib::IsPair(pair_name)) {
-    cout << "The pair name " << argv[2] << " is not valid";
+    cout << "[ERROR] The pair name " << argv[2] << " is not valid";
     return boost::system::errc::invalid_argument;
   }
   boost::algorithm::to_upper(pair_name);
@@ -60,13 +61,13 @@ int main(int argc, char* argv[])
   }
   boost::filesystem::path out_path = boost::filesystem::canonical(out_file.parent_path(), ec);
   if (ec) {
-    cout << "Destination directory \"" << out_file << "\" has not found" << endl;
+    cout << "[ERROR] Destination directory \"" << out_file << "\" has not found" << endl;
     return ec.value();
   }
   out_path.append(out_file.filename().c_str());
   if (boost::filesystem::exists(out_path)) {
     // TODO: add hash checking to be sure that really nothing to do.
-    cout << "The binary file " << out_path << " already exists. Nothing to do." << endl;
+    cout << "[NOTE] The binary file " << out_path << " already exists. Nothing to do." << endl;
     return boost::system::errc::success;
   }
 
@@ -88,7 +89,7 @@ int main(int argc, char* argv[])
   }
 
   if (src_list.empty()) {
-    cout << "No one source file has been found!" << endl;
+    cout << "[ERROR] No one source file has been found!" << endl;
     return boost::system::errc::no_such_file_or_directory;
   }
 
@@ -99,48 +100,67 @@ int main(int argc, char* argv[])
     if (total_period.is_adjacent(get<1>(src_list[i]))) {
       total_period = total_period.span(get<1>(src_list[i]));
     } else {
-      cout << "There is a gap between " << get<0>(src_list[i - 1]) << " and " << get<0>(src_list[i]) << endl;
+      cout << "[ERROR] There is a gap between " << get<0>(src_list[i - 1]) << " and " << get<0>(src_list[i]) << endl;
       return boost::system::errc::argument_out_of_domain;
     }
   }
   cout << "Found " << src_list.size() << " source files with total period " << total_period << endl;
 
   fxlib::fxsequence seq = {fxlib::fxperiodicity::minutely, total_period, {}};
-  seq.candles.reserve(total_period.length().days() * 24 * 60);
+  size_t min_count = 0;
   for (boost::gregorian::day_iterator ditr = {total_period.begin()}; ditr < total_period.end(); ++ditr) {
-    cout << '\r' << "Open period on " << *ditr;
+    cout << '\r' << "On date " << *ditr;
     const boost::posix_time::time_period open_period = fxlib::ForexOpenHours(*ditr);
-    cout << " has " << (open_period.length().total_seconds() / 60) << " minutes";
-    for (boost::posix_time::time_iterator titr = {open_period.begin(), boost::posix_time::minutes(1)}; titr < open_period.end(); ++titr) {
-      seq.candles.push_back({*titr, 0, 0, 0, 0});
-    }
+    min_count += open_period.length().total_seconds() / 60;
+    cout << " found total " << min_count << " minutes";
   }
-  cout << endl << "Expected total minute candles " << seq.candles.size() << endl;
+  seq.candles.reserve(min_count);
+  cout << endl;
 
-  ofstream fout(string_narrow(out_path.c_str()), ofstream::binary);
   try {
+    ofstream fout(string_narrow(out_path.c_str()), ofstream::binary);
     if (!fout.good()) {
       throw "Could not open " + string_narrow(out_path.c_str());
     }
-    try {
-      for (const auto& src : src_list) {
-        ifstream fin(string_narrow(get<0>(src).c_str()));
-        if (fin.good()) {
-          string header;
-          if (!getline(fin, header).good()) {
-            cout << "File " << get<0>(src) << " does not contain a data or read error." << endl;
-            return boost::system::errc::io_error;
+    for (const auto& src : src_list) {
+      const string fullfilename = string_narrow(get<0>(src).c_str());
+      ifstream fin(fullfilename);
+      if (!fin.good()) {
+        throw "Could not open " + fullfilename;
+      }
+      string header;
+      if (!getline(fin, header).good()) {
+        throw "Could not read the header from " + fullfilename;
+      } else if (header != "<TICKER> <PER> <DATE> <TIME> <OPEN> <HIGH> <LOW> <CLOSE> <VOL>") {
+        throw "The header is mismatched in " + fullfilename;
+      }
+      const boost::gregorian::date_period& fperiod = get<1>(src);
+      cout << "Reading " << fullfilename << " " << fperiod << "..." << endl;
+      for (boost::gregorian::day_iterator ditr = {fperiod.begin()}; ditr < fperiod.end(); ++ditr) {
+        const boost::posix_time::time_period open_period = fxlib::ForexOpenHours(*ditr);
+        int gap_count = 0;
+        for (boost::posix_time::time_iterator titr = {open_period.begin(), boost::posix_time::minutes(1)}; titr < open_period.end(); ++titr) {
+          if (fin.eof()) {
+            gap_count++;
+          } else {
+            string str;
+            do {
+              getline(fin, str);
+              if (fin.fail() || fin.bad()) {
+                throw "Could not read from " + fullfilename;
+              }
+            } while (fin.good() && str.empty());
+            if (str.empty()) {
+              gap_count++;
+            }
+            // ...
           }
-          fin.close();
-        } else {
-          cout << "Could not open " << get<0>(src) << endl;
-          return boost::system::errc::io_error;
-        }
-      }  // for (const auto& src : src_list)
-    }
-    fout.close();
+          //seq.candles.push_back({*titr, 0, 0, 0, 0});
+        }  // for time_iterator
+      }  // for day_iterator
+    }  // for src_list
   } catch (const string& e) {
-    cout << e << endl;
+    cout << "[ERROR] " << e << endl;
     return boost::system::errc::io_error;
   }
 
