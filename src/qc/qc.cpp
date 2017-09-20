@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iterator>
 #include <fstream>
+#include <sstream>
 
 template <typename From, typename To>
 To str_convert(const From& str) {
@@ -128,12 +129,14 @@ int main(int argc, char* argv[])
       if (!fin.good()) {
         throw "Could not open " + fullfilename;
       }
+      int line_count = 0;
       string header;
       if (!getline(fin, header).good()) {
         throw "Could not read the header from " + fullfilename;
       } else if (header != "<TICKER> <PER> <DATE> <TIME> <OPEN> <HIGH> <LOW> <CLOSE> <VOL>") {
         throw "The header is mismatched in " + fullfilename;
       }
+      line_count++;
       const boost::gregorian::date_period& fperiod = get<1>(src);
       cout << "Reading " << fullfilename << " " << fperiod << "..." << endl;
       for (boost::gregorian::day_iterator ditr = {fperiod.begin()}; ditr < fperiod.end(); ++ditr) {
@@ -144,18 +147,24 @@ int main(int argc, char* argv[])
             gap_count++;
           } else {
             string str;
-            do {
-              getline(fin, str);
-              if (fin.fail() || fin.bad()) {
-                throw "Could not read from " + fullfilename;
-              }
-            } while (fin.good() && str.empty());
-            if (str.empty()) {
-              gap_count++;
+            getline(fin, str);
+            if (fin.fail() || fin.bad()) {
+              ostringstream ostr;
+              ostr << fullfilename << " : line " << line_count << ". Read error!";
+              throw ostr.str();
+            }
+            line_count++;
+            boost::smatch what;
+            if (!boost::regex_match(str, what, fxlib::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
+              ostringstream ostr;
+              ostr << fullfilename << " : line " << line_count << ". The line is not matched Finam export format.";
+              throw ostr.str();
             }
             // ...
-          }
-          //seq.candles.push_back({*titr, 0, 0, 0, 0});
+          }  // if fin.eof
+          
+             //seq.candles.push_back({*titr, 0, 0, 0, 0});
+
         }  // for time_iterator
       }  // for day_iterator
     }  // for src_list
