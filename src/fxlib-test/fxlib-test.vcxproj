@@ -71,22 +71,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)..\out\$(Configuration)\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)..\out\$(Configuration)\obj\$(Platform)\$(ProjectName)\</IntDir>
-    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -155,6 +155,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="finam_test.cpp" />
     <ClCompile Include="fxtime_test.cpp" />
   </ItemGroup>
   <ItemGroup>
