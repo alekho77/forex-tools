@@ -129,14 +129,13 @@ int main(int argc, char* argv[])
       if (!fin.good()) {
         throw "Could not open " + fullfilename;
       }
-      int line_count = 0;
       string header;
       if (!getline(fin, header).good()) {
         throw "Could not read the header from " + fullfilename;
       } else if (header != "<TICKER> <PER> <DATE> <TIME> <OPEN> <HIGH> <LOW> <CLOSE> <VOL>") {
         throw "The header is mismatched in " + fullfilename;
       }
-      line_count++;
+      int line_count = 1;  // The header has been already read.
       const boost::gregorian::date_period& fperiod = get<1>(src);
       cout << "Reading " << fullfilename << " " << fperiod << "..." << endl;
       for (boost::gregorian::day_iterator ditr = {fperiod.begin()}; ditr < fperiod.end(); ++ditr) {
@@ -146,19 +145,23 @@ int main(int argc, char* argv[])
           if (fin.eof()) {
             gap_count++;
           } else {
-            string str;
-            getline(fin, str);
-            if (fin.fail() || fin.bad()) {
+            line_count++;
+            string line;
+            getline(fin, line);
+            if (fin.bad()) {
               ostringstream ostr;
               ostr << fullfilename << " : line " << line_count << ". Read error!";
               throw ostr.str();
             }
-            line_count++;
-            boost::smatch what;
-            if (!boost::regex_match(str, what, fxlib::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
-              ostringstream ostr;
-              ostr << fullfilename << " : line " << line_count << ". The line is not matched Finam export format.";
-              throw ostr.str();
+            if (fin.eof() && line.empty()) {
+              gap_count++;
+            } else {
+              boost::smatch what;
+              if (!boost::regex_match(line, what, fxlib::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
+                ostringstream ostr;
+                ostr << fullfilename << " : line " << line_count << ". The line is not matched Finam export format.";
+                throw ostr.str();
+              }
             }
             // ...
           }  // if fin.eof
