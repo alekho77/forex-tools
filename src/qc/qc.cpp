@@ -124,52 +124,60 @@ int main(int argc, char* argv[])
       throw "Could not open " + string_narrow(out_path.c_str());
     }
     for (const auto& src : src_list) {
+      // Open source file and check header
       const string fullfilename = string_narrow(get<0>(src).c_str());
       ifstream fin(fullfilename);
-      if (!fin.good()) {
+      int line_count = 0;
+      if (fin.good()) {
+        string header;
+        if (!getline(fin, header).good()) {
+          throw "Could not read the header from " + fullfilename;
+        } else if (header != "<TICKER> <PER> <DATE> <TIME> <OPEN> <HIGH> <LOW> <CLOSE> <VOL>") {
+          throw "The header is mismatched in " + fullfilename;
+        }
+        line_count++;  // The header has been read.
+      } else {
         throw "Could not open " + fullfilename;
       }
-      string header;
-      if (!getline(fin, header).good()) {
-        throw "Could not read the header from " + fullfilename;
-      } else if (header != "<TICKER> <PER> <DATE> <TIME> <OPEN> <HIGH> <LOW> <CLOSE> <VOL>") {
-        throw "The header is mismatched in " + fullfilename;
-      }
-      int line_count = 1;  // The header has been already read.
-      const boost::gregorian::date_period& fperiod = get<1>(src);
-      cout << "Reading " << fullfilename << " " << fperiod << "..." << endl;
-      for (boost::gregorian::day_iterator ditr = {fperiod.begin()}; ditr < fperiod.end(); ++ditr) {
-        const boost::posix_time::time_period open_period = fxlib::ForexOpenHours(*ditr);
-        int gap_count = 0;
-        for (boost::posix_time::time_iterator titr = {open_period.begin(), boost::posix_time::minutes(1)}; titr < open_period.end(); ++titr) {
-          if (fin.eof()) {
-            gap_count++;
-          } else {
-            line_count++;
-            string line;
-            getline(fin, line);
-            if (fin.bad()) {
-              ostringstream ostr;
-              ostr << fullfilename << " : line " << line_count << ". Read error!";
-              throw ostr.str();
-            }
-            if (fin.eof() && line.empty()) {
-              gap_count++;
-            } else {
-              boost::smatch what;
-              if (!boost::regex_match(line, what, fxlib::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
-                ostringstream ostr;
-                ostr << fullfilename << " : line " << line_count << ". The line is not matched Finam export format.";
-                throw ostr.str();
-              }
-            }
-            // ...
-          }  // if fin.eof
-          
-             //seq.candles.push_back({*titr, 0, 0, 0, 0});
 
-        }  // for time_iterator
-      }  // for day_iterator
+      const boost::gregorian::date_period& fperiod = get<1>(src);
+      boost::gregorian::day_iterator ditr{fperiod.begin()};
+      const boost::posix_time::time_period open_period = fxlib::ForexOpenHours(*ditr);
+      boost::posix_time::time_iterator titr{open_period.begin(), boost::posix_time::minutes(1)};
+
+      cout << "Reading " << fullfilename << " " << fperiod << "..." << endl;
+      while (!fin.eof()) {
+        line_count++;
+        string line;
+        getline(fin, line);
+        if (fin.bad()) {
+          ostringstream ostr;
+          ostr << fullfilename << " : line " << line_count << ". Read error!";
+          throw ostr.str();
+        }
+        boost::smatch what;
+        if (!boost::regex_match(line, what, fxlib::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
+          ostringstream ostr;
+          ostr << fullfilename << " : line " << line_count << ". The line is not matched Finam export format.";
+          throw ostr.str();
+        }
+
+
+      }  // while !fin.eof()
+
+
+//       for ( ditr < fperiod.end(); ++ditr) {
+//         int gap_count = 0;
+//         for (; titr < open_period.end(); ++titr) {
+//           if (fin.eof()) {
+//             gap_count++;
+//           } else {
+//             // ...
+//           }  // if fin.eof
+//              //seq.candles.push_back({*titr, 0, 0, 0, 0});
+//         }  // for time_iterator
+//       }  // for day_iterator
+
     }  // for src_list
   } catch (const string& e) {
     cout << "[ERROR] " << e << endl;
