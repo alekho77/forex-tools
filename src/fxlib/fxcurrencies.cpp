@@ -7,7 +7,7 @@
 
 namespace fxlib {
 
-const std::vector<std::string> currencies = {"USD", "EUR", "GBP", "CHF", "JPY", "ÑAD", "AUD", "NZD"};
+const std::vector<std::string> currencies = {"USD", "EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "NZD"};
 
 bool IsCurrency(const std::string & curr) {
   return std::any_of(std::cbegin(currencies), std::cend(currencies), [&curr](const auto& c) {
