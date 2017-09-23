@@ -20,8 +20,9 @@ enum class fxperiodicity : int {
   tick = 0,
   minutely = 1,
   hourly = 60 * minutely,
-  dayly = 24 * hourly,
-  monthly = 30 * dayly
+  daily = 24 * hourly,
+  weekly = 5 * daily,
+  monthly = 4 * weekly + 2 * daily
 };
 
 struct fxsequence {
