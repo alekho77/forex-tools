@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
     min_count += open_period.length().total_seconds() / 60;
   }
   seq.candles.reserve(min_count);
-  cout << "Expected total " << min_count << " minutely quotes";
+  cout << "Expected total " << min_count << " minutely quotes" << endl;
 
   try {
     for (const auto& src : src_list) {
@@ -175,6 +175,7 @@ int main(int argc, char* argv[])
               }
               tdelta += candle.time - open_period.begin();
             }
+            //tdelta += boost::posix_time::minutes(1);
             if (tdelta >= tpAllowableGap) {
               cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
             }
