@@ -36,6 +36,9 @@
     <ClInclude Include="helpers\fxtime_serializable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="finam\finam.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fxtime.cpp">
@@ -45,6 +48,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="fxquote.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="finam\finam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

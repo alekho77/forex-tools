@@ -2,6 +2,7 @@
 //
 
 #include "fxlib/fxlib.h"
+#include "fxlib/finam/finam.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -166,7 +167,7 @@ int main(int argc, char* argv[])
         }
         // Split line
         boost::smatch what;
-        if (!boost::regex_match(line, what, fxlib::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
+        if (!boost::regex_match(line, what, fxlib::detail::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
           ostringstream ostr;
           ostr << "Line: " << line_count << ". The line is not matched Finam export format.";
           throw ostr.str();

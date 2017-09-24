@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="finam\finam.h" />
     <ClInclude Include="fxcurrencies.h" />
     <ClInclude Include="fxlib.h" />
     <ClInclude Include="fxmath.h" />
@@ -142,6 +143,7 @@
     <ClInclude Include="helpers\fxtime_serializable.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="finam\finam.cpp" />
     <ClCompile Include="fxcurrencies.cpp" />
     <ClCompile Include="fxquote.cpp" />
     <ClCompile Include="fxtime.cpp" />

@@ -1,10 +1,12 @@
-#include "fxlib/fxquote.h"
+#include "fxlib/finam/finam.h"
 
 #include <gtest/gtest.h>
 
 #include <string>
 #include <vector>
 #include <utility>
+
+using fxlib::detail::FinamExportFormat;
 
 class finam_test_fixture : public ::testing::Test {
 protected:
@@ -33,20 +35,20 @@ protected:
 
 TEST_F(finam_test_fixture, check_match) {
   for (const auto& line: valid_finam_lines) {
-    EXPECT_TRUE(boost::regex_match(line.first, fxlib::FinamExportFormat));
+    EXPECT_TRUE(boost::regex_match(line.first, FinamExportFormat));
   }
 }
 
 TEST_F(finam_test_fixture, check_no_match) {
   for (const auto& line : invalid_finam_lines) {
-    EXPECT_FALSE(boost::regex_match(line, fxlib::FinamExportFormat));
+    EXPECT_FALSE(boost::regex_match(line, FinamExportFormat));
   }
 }
 
 TEST_F(finam_test_fixture, check_parsing) {
   for (const auto& line : valid_finam_lines) {
     boost::smatch what;
-    ASSERT_TRUE(boost::regex_match(line.first, what, fxlib::FinamExportFormat));
+    ASSERT_TRUE(boost::regex_match(line.first, what, FinamExportFormat));
     ASSERT_EQ(ex_names.size() + 1, what.size());
     for (int i = 0; i < ex_names.size(); i++) {
       EXPECT_EQ(line.second[i], what[i + 1]);
