@@ -57,6 +57,8 @@ static inline std::istream& operator >> (std::istream& in, fxtime& time) noexcep
   return in;
 }
 
+namespace conversion {
+
 static inline std::string to_iso_string(const fxtime& t) noexcept(false) {
   try {
     return boost::lexical_cast<std::string>(t);
@@ -81,5 +83,6 @@ static inline bool try_from_iso_string(const std::string& str, fxtime& t) noexce
   return boost::conversion::try_lexical_convert(str, t);
 }
 
+}  // namespace conversion
 }  // namespace fxlib
 

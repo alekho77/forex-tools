@@ -7,6 +7,11 @@
 
 #include <sstream>
 
+using fxlib::conversion::from_iso_string;
+using fxlib::conversion::to_iso_string;
+using fxlib::conversion::try_from_iso_string;
+using fxlib::conversion::try_to_iso_string;
+
 class fxtime_test_fixture : public ::testing::Test {
 protected:
   const fxlib::fxtime correct_fxtime = {{0x20, 0x17, 0x09, 0x14, 0xDD, 0x17, 0x54, 0x31}};
@@ -105,18 +110,18 @@ TEST_F(fxtime_test_fixture, read_fxtime_from_stream) {
 TEST_F(fxtime_test_fixture, fxtime_cast_to_ptime) {
   {
     boost::posix_time::ptime time;
-    EXPECT_NO_THROW(time = boost::posix_time::from_iso_string(fxlib::to_iso_string(correct_fxtime)));
+    EXPECT_NO_THROW(time = boost::posix_time::from_iso_string(to_iso_string(correct_fxtime)));
     EXPECT_EQ(correct_ptime, time);
   }
   {
     std::string str;
-    EXPECT_NO_THROW(str = fxlib::to_iso_string(invalid_fxtime));
+    EXPECT_NO_THROW(str = to_iso_string(invalid_fxtime));
     EXPECT_THROW(boost::posix_time::from_iso_string(str), boost::exception);
   }
   {
-    EXPECT_THROW(fxlib::to_iso_string(bad_separator_time), std::bad_cast);
-    EXPECT_THROW(fxlib::to_iso_string(bad_highdig_time), std::bad_cast);
-    EXPECT_THROW(fxlib::to_iso_string(bad_lowdig_time), std::bad_cast);
+    EXPECT_THROW(to_iso_string(bad_separator_time), std::bad_cast);
+    EXPECT_THROW(to_iso_string(bad_highdig_time), std::bad_cast);
+    EXPECT_THROW(to_iso_string(bad_lowdig_time), std::bad_cast);
   }
 }
 
@@ -124,33 +129,33 @@ TEST_F(fxtime_test_fixture, fxtime_try_cast_to_ptime) {
   {
     boost::posix_time::ptime time;
     std::string str;
-    EXPECT_TRUE(fxlib::try_to_iso_string(correct_fxtime, str));
+    EXPECT_TRUE(try_to_iso_string(correct_fxtime, str));
     EXPECT_NO_THROW(time = boost::posix_time::from_iso_string(str));
     EXPECT_EQ(correct_ptime, time);
   }
   {
     std::string str;
-    EXPECT_TRUE(fxlib::try_to_iso_string(invalid_fxtime, str));
+    EXPECT_TRUE(try_to_iso_string(invalid_fxtime, str));
     EXPECT_THROW(boost::posix_time::from_iso_string(str), boost::exception);
   }
   {
     std::string str;
-    EXPECT_FALSE(fxlib::try_to_iso_string(bad_separator_time, str));
-    EXPECT_FALSE(fxlib::try_to_iso_string(bad_highdig_time, str));
-    EXPECT_FALSE(fxlib::try_to_iso_string(bad_lowdig_time, str));
+    EXPECT_FALSE(try_to_iso_string(bad_separator_time, str));
+    EXPECT_FALSE(try_to_iso_string(bad_highdig_time, str));
+    EXPECT_FALSE(try_to_iso_string(bad_lowdig_time, str));
   }
 }
 
 TEST_F(fxtime_test_fixture, ptime_cast_to_fxtime) {
   {
     fxlib::fxtime time;
-    EXPECT_NO_THROW(time = fxlib::from_iso_string(boost::posix_time::to_iso_string(correct_ptime)));
+    EXPECT_NO_THROW(time = from_iso_string(boost::posix_time::to_iso_string(correct_ptime)));
     EXPECT_EQ(correct_fxtime.data, time.data);
   }
   {
     std::string str;
     EXPECT_NO_THROW(str = boost::posix_time::to_iso_string(invalid_ptime));
-    EXPECT_THROW(fxlib::from_iso_string(str), std::bad_cast);
+    EXPECT_THROW(from_iso_string(str), std::bad_cast);
   }
 }
 
@@ -159,13 +164,13 @@ TEST_F(fxtime_test_fixture, ptime_try_cast_to_fxtime) {
     fxlib::fxtime time;
     std::string str;
     EXPECT_NO_THROW(str = boost::posix_time::to_iso_string(correct_ptime));
-    EXPECT_TRUE(fxlib::try_from_iso_string(str, time));
+    EXPECT_TRUE(try_from_iso_string(str, time));
     EXPECT_EQ(correct_fxtime.data, time.data);
   }
   {
     fxlib::fxtime time;
     std::string str;
     EXPECT_NO_THROW(str = boost::posix_time::to_iso_string(invalid_ptime));
-    EXPECT_FALSE(fxlib::try_from_iso_string(str, time));
+    EXPECT_FALSE(try_from_iso_string(str, time));
   }
 }
