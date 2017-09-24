@@ -17,6 +17,7 @@
 #include <iterator>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 
 using fxlib::conversion::string_narrow;
 using fxlib::conversion::string_widen;
@@ -137,109 +138,48 @@ int main(int argc, char* argv[])
 
       cout << "Reading " << fullfilename << " " << fperiod << "..." << endl;
       while (!fin.eof()) {
-        // Read line
         line_count++;
-        string line;
-        getline(fin, line);
-        if (fin.bad()) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Read error!";
-          throw ostr.str();
-        }
-        if (line.empty() && fin.eof()) {
-          continue;
-        }
-        if (ditr >= fperiod.end()) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found extra data that is out of file period " << fperiod;
-          throw ostr.str();
-        }
-        // Split line
-        boost::smatch what;
-        if (!boost::regex_match(line, what, fxlib::detail::FinamExportFormat)) {  // It assumes that an empty line is not supported in the source files.
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". The line is not matched Finam export format.";
-          throw ostr.str();
-        }
-        // Check and cast line partions
-        fxlib::fxcandle candle;
-        if (!boost::algorithm::iequals(what["TICKER"], pair_name)) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found ticker " << what["TICKER"] << " in lieu of " << pair_name;
-          throw ostr.str();
-        }
-        int per;
-        if (!boost::conversion::try_lexical_convert(what["PER"], per) || per != 1) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found period " << what["PER"] << " in lieu of " << 1;
-          throw ostr.str();
-        }
         try {
-          candle.time = boost::posix_time::from_iso_string("20" + what["DATE"] + "T" + what["TIME"] + "00");
+          // Read line
+          string line;
+          getline(fin, line);
+          if (fin.bad()) {
+            throw std::logic_error("Read error!");
+          }
+          if (line.empty() && fin.eof()) {
+            continue;
+          }
+          if (ditr >= fperiod.end()) {
+            throw std::logic_error("Found extra data that is out of file period " + boost::gregorian::to_simple_string(fperiod));
+          }
+          // It assumes that an empty line is not supported in the source files.
+          const fxlib::fxcandle candle = fxlib::MakeFromFinam(line, pair_name);
+          // Test parsed candle data
+          if (candle.time != *titr) {
+            if (candle.time < *titr) {
+              throw std::logic_error("Wrong candle time " + boost::posix_time::to_simple_string(candle.time) + " that is less than expected time " + boost::posix_time::to_simple_string(*titr));
+            }
+            const boost::posix_time::time_duration tdelta = candle.time - *titr;
+            if (tdelta > boost::posix_time::minutes(4)) {
+              cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
+            }
+            titr = {candle.time, boost::posix_time::minutes(1)};
+            if (titr >= open_period.end()) {
+              ditr = boost::gregorian::day_iterator{candle.time.date()};
+              if (ditr >= fperiod.end()) {
+                throw std::logic_error("Candle date " + boost::gregorian::to_simple_string(candle.time.date()) + " is out of file period " + boost::gregorian::to_simple_string(fperiod));
+              }
+              open_period = fxlib::ForexOpenHours(*ditr);
+              if (titr < open_period.begin() || titr >= open_period.end()) {
+                throw std::logic_error("Candle date-time " + boost::posix_time::to_simple_string(candle.time) + " is out of file open period " + boost::posix_time::to_simple_string(open_period));
+              }
+            }
+          }  // if (candle.time != *titr)
         } catch (const std::exception& e) {
           ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found wrong date-time " << what["DATE"] << " " << what["TIME"] << ": " << e.what();
+          ostr << "Line: " << line_count << " - " << e.what();
           throw ostr.str();
         }
-        if (candle.time.is_not_a_date_time()) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found wrong date-time " << what["DATE"] << " " << what["TIME"];
-          throw ostr.str();
-        }
-        if (!boost::conversion::try_lexical_convert(what["OPEN"], candle.open)) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found wrong OPEN quotation " << what["OPEN"];
-          throw ostr.str();
-        }
-        if (!boost::conversion::try_lexical_convert(what["CLOSE"], candle.close)) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found wrong CLOSE quotation " << what["CLOSE"];
-          throw ostr.str();
-        }
-        if (!boost::conversion::try_lexical_convert(what["HIGH"], candle.high)) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found wrong HIGH quotation " << what["HIGH"];
-          throw ostr.str();
-        }
-        if (!boost::conversion::try_lexical_convert(what["LOW"], candle.low)) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found wrong LOW quotation " << what["LOW"];
-          throw ostr.str();
-        }
-        int vol;
-        if (!boost::conversion::try_lexical_convert(what["VOL"], vol)) {
-          ostringstream ostr;
-          ostr << "Line: " << line_count << ". Found wrong volume field " << what["VOL"];
-          throw ostr.str();
-        }
-        // Test parsed candle data
-        if (candle.time != *titr) {
-          if (candle.time < *titr) {
-            ostringstream ostr;
-            ostr << "Line: " << line_count << ". Wrong candle time " << candle.time << " that is less than expected time " << *titr;
-            throw ostr.str();
-          }
-          const boost::posix_time::time_duration tdelta = candle.time - *titr;
-          if (tdelta > boost::posix_time::minutes(4)) {
-            cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
-          }
-          titr = {candle.time, boost::posix_time::minutes(1)};
-          if (titr >= open_period.end()) {
-            ditr = boost::gregorian::day_iterator{candle.time.date()};
-            if (ditr >= fperiod.end()) {
-              ostringstream ostr;
-              ostr << "Line: " << line_count << ". Candle date " << candle.time.date() << " is out of file period " << fperiod;
-              throw ostr.str();
-            }
-            open_period = fxlib::ForexOpenHours(*ditr);
-            if (titr < open_period.begin() || titr >= open_period.end()) {
-              ostringstream ostr;
-              ostr << "Line: " << line_count << ". Candle date-time " << candle.time << " is out of file open period " << open_period;
-              throw ostr.str();
-            }
-          }
-        }  // if (candle.time != *titr)
-        
         // Corect expected date-time for new line
         ++titr;
         if (titr >= open_period.end()) {

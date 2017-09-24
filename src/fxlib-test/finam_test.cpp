@@ -6,7 +6,7 @@
 #include <vector>
 #include <utility>
 
-using fxlib::detail::FinamExportFormat;
+using fxlib::detail::rxFinamExportFormat;
 
 class finam_test_fixture : public ::testing::Test {
 protected:
@@ -35,20 +35,20 @@ protected:
 
 TEST_F(finam_test_fixture, check_match) {
   for (const auto& line: valid_finam_lines) {
-    EXPECT_TRUE(boost::regex_match(line.first, FinamExportFormat));
+    EXPECT_TRUE(boost::regex_match(line.first, rxFinamExportFormat));
   }
 }
 
 TEST_F(finam_test_fixture, check_no_match) {
   for (const auto& line : invalid_finam_lines) {
-    EXPECT_FALSE(boost::regex_match(line, FinamExportFormat));
+    EXPECT_FALSE(boost::regex_match(line, rxFinamExportFormat));
   }
 }
 
 TEST_F(finam_test_fixture, check_parsing) {
   for (const auto& line : valid_finam_lines) {
     boost::smatch what;
-    ASSERT_TRUE(boost::regex_match(line.first, what, FinamExportFormat));
+    ASSERT_TRUE(boost::regex_match(line.first, what, rxFinamExportFormat));
     ASSERT_EQ(ex_names.size() + 1, what.size());
     for (int i = 0; i < ex_names.size(); i++) {
       EXPECT_EQ(line.second[i], what[i + 1]);
