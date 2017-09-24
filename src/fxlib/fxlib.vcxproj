@@ -141,6 +141,7 @@
     <ClInclude Include="fxtime.h" />
     <ClInclude Include="helpers\fxtime_conversion.h" />
     <ClInclude Include="helpers\fxtime_serializable.h" />
+    <ClInclude Include="helpers\string_conversion.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="finam\finam.cpp" />

@@ -3,6 +3,7 @@
 
 #include "fxlib/fxlib.h"
 #include "fxlib/finam/finam.h"
+#include "fxlib/helpers/string_conversion.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -17,20 +18,8 @@
 #include <fstream>
 #include <sstream>
 
-template <typename From, typename To>
-To str_convert(const From& str) {
-  To result;
-  boost::filesystem::path_traits::convert(str.c_str(), result);
-  return result;
-}
-
-std::wstring string_widen(const std::string& str) {
-  return str_convert<std::string, std::wstring>(str);
-}
-
-std::string string_narrow(const std::wstring& str) {
-  return str_convert<std::wstring, std::string>(str);
-}
+using fxlib::conversion::string_narrow;
+using fxlib::conversion::string_widen;
 
 int main(int argc, char* argv[])
 {

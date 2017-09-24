@@ -39,6 +39,9 @@
     <ClInclude Include="finam\finam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\string_conversion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fxtime.cpp">
