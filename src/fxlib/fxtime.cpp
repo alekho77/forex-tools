@@ -42,26 +42,23 @@ using boost::posix_time::ptime;
 //  return date.day_of_week() >= Monday && date.day_of_week() <= Friday;
 //}
 
-bool IsGMTDFST(const boost::gregorian::date& date) noexcept {
-  using namespace boost::gregorian;
-  day_iterator ditr_dst_start{{date.year(), Mar, 31}};
-  while (ditr_dst_start->day_of_week() != Sunday) {
-    --ditr_dst_start;
-  }
-  day_iterator ditr_dst_end{{date.year(), Oct, 31}};
-  while (ditr_dst_end->day_of_week() != Sunday) {
-    --ditr_dst_end;
-  }
-  return date >= *ditr_dst_start && date < *ditr_dst_end;
-}
+// bool IsGMTDFST(const boost::gregorian::date& date) noexcept {
+//   using namespace boost::gregorian;
+//   day_iterator ditr_dst_start{{date.year(), Mar, 31}};
+//   while (ditr_dst_start->day_of_week() != Sunday) {
+//     ++ditr_dst_start;
+//   }
+//   day_iterator ditr_dst_end{{date.year(), Oct, 31}};
+//   while (ditr_dst_end->day_of_week() != Sunday) {
+//     --ditr_dst_end;
+//   }
+//   return date > *ditr_dst_start && date < *ditr_dst_end;
+// }
 
 time_period ForexOpenHours(const boost::gregorian::date& d) noexcept {
   using namespace boost::gregorian;
   switch (d.day_of_week()) {
     case Sunday:
-      if (IsGMTDFST(d)) {
-        return time_period(ptime(d, d.month() == Oct ? time_duration(22,1,0) : time_duration(23,1,0)), ptime(d, time_duration(24,1,0)));
-      }
       return time_period(ptime(d, time_duration(21,1,0)), ptime(d, time_duration(24,1,0)));
     case Monday:
     case Tuesday:
@@ -70,7 +67,7 @@ time_period ForexOpenHours(const boost::gregorian::date& d) noexcept {
     case Friday:
       return time_period(ptime(d, minutes(1)), hours(24));
     case Saturday:
-      return time_period(ptime(d, minutes(1)), IsGMTDFST(d) ? hours(2) : hours(3));
+      return time_period(ptime(d, minutes(1)), hours(3));
     default:
       break;
   }
