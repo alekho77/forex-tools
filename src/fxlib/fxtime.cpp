@@ -1,5 +1,8 @@
 #include "fxtime.h"
 
+#include <map>
+#include <set>
+
 namespace fxlib {
 
 using boost::posix_time::time_duration;
@@ -39,7 +42,7 @@ using boost::posix_time::ptime;
 //  return date.day_of_week() >= Monday && date.day_of_week() <= Friday;
 //}
 
-bool IsGMTDFST(const boost::gregorian::date& date) {
+bool IsGMTDFST(const boost::gregorian::date& date) noexcept {
   using namespace boost::gregorian;
   day_iterator ditr_dst_start{{date.year(), Mar, 31}};
   while (ditr_dst_start->day_of_week() != Sunday) {
@@ -52,26 +55,68 @@ bool IsGMTDFST(const boost::gregorian::date& date) {
   return date >= *ditr_dst_start && date < *ditr_dst_end;
 }
 
-time_period ForexOpenHours(const boost::gregorian::date& date) noexcept {
+bool IsForexHolidays(const boost::gregorian::date& d) noexcept {
   using namespace boost::gregorian;
-  switch (date.day_of_week()) {
+  static const std::set<date> holidays = {
+    date(2014, Nov, 1),
+    date(2014, Nov, 2),
+    date(2014, Nov, 3),
+    date(2014, Nov, 9),
+    date(2014, Nov, 10),
+    date(2014, Nov, 22),
+    date(2014, Nov, 23),
+    date(2014, Nov, 24),
+    date(2015, Jan, 10),
+    date(2015, Jan, 17),
+    date(2015, Jan, 24),
+    date(2015, Feb, 1),
+    date(2015, Feb, 7),
+  };
+  return holidays.count(d) != 0;
+}
+
+time_period ForexSuspension(const boost::gregorian::date& d) noexcept {
+  using namespace boost::gregorian;
+  static const std::map<date, time_period> suspesions = {
+    {date(2014, Nov, 6),{ptime(date(2014, Nov, 6), minutes(1)), ptime(date(2014, Nov, 6), time_duration(16,31,0))}},
+    {date(2014, Nov, 7),{ptime(date(2014, Nov, 7), time_duration(9,1,0)), ptime(date(2014, Nov, 7), time_duration(24,1,0))}},
+  };
+  const auto iter = suspesions.find(d);
+  if (iter != suspesions.end()) {
+    return iter->second;
+  }
+  return {ptime(d, minutes(1)), hours(24)};
+}
+
+time_period ForexOpenHours(const boost::gregorian::date& d) noexcept {
+  using namespace boost::gregorian;
+  switch (d.day_of_week()) {
     case Sunday:
-      if (IsGMTDFST(date)) {
-        return time_period(ptime(date, date.month() == Oct ? time_duration(22,1,0) : time_duration(23,1,0)), ptime(date, time_duration(24,1,0)));
+      if (IsForexHolidays(d)) {
+        break;
       }
-      return time_period(ptime(date, time_duration(21,1,0)), ptime(date, time_duration(24,1,0)));
+      if (IsGMTDFST(d)) {
+        return time_period(ptime(d, d.month() == Oct ? time_duration(22,1,0) : time_duration(23,1,0)), ptime(d, time_duration(24,1,0)));
+      }
+      return time_period(ptime(d, time_duration(21,1,0)), ptime(d, time_duration(24,1,0)));
     case Monday:
     case Tuesday:
     case Wednesday:
     case Thursday:
     case Friday:
-      return time_period(ptime(date, minutes(1)), hours(24));
+      if (IsForexHolidays(d)) {
+        return time_period(ptime(d, hours(10)), ptime(d, time_duration(24, 1, 0)));
+      }
+      return time_period(ptime(d, minutes(1)), hours(24)).intersection(ForexSuspension(d));
     case Saturday:
-      return time_period(ptime(date, minutes(1)), IsGMTDFST(date) ? time_duration(2,15,0) : time_duration(3,15,0));  // Sometimes we have small time lag for last quotations on Sat
+      if (IsForexHolidays(d)) {
+        return time_period(ptime(d, minutes(1)), hours(2));
+      }
+      return time_period(ptime(d, minutes(1)), IsGMTDFST(d) ? hours(2) : hours(3));
     default:
       break;
   }
-  return time_period(ptime(date), hours(0));
+  return time_period(ptime(d), hours(0));
 }
 
 }  // namespace fxlib
