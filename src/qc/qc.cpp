@@ -193,6 +193,9 @@ int main(int argc, char* argv[])
             ++ditr;
             open_period = fxlib::ForexOpenHours(*ditr);
           } while (open_period.is_null());
+          if (ditr >= file_period.end()) {
+            open_period = boost::posix_time::time_period(boost::posix_time::ptime(*ditr), boost::posix_time::hours(0));
+          }
           titr = {open_period.begin(), boost::posix_time::minutes(1)};
         }
       }  // while !fin.eof()
