@@ -176,9 +176,9 @@ int main(int argc, char* argv[])
               tdelta += candle.time - open_period.begin();
             }
             tdelta += boost::posix_time::minutes(1);
-            if (tdelta >= boost::posix_time::hours(24)) {
-              throw std::logic_error("A gap more than a day " + to_simple_string(tdelta));
-            }
+            //if (tdelta >= boost::posix_time::hours(24)) {
+            //  throw std::logic_error("A gap more than a day " + to_simple_string(tdelta));
+            //}
             if (tdelta >= tpAllowableGap) {
               cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
             }
