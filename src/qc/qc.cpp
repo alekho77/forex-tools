@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
               }
               tdelta += candle.time - open_period.begin();
             }
-            //tdelta += boost::posix_time::minutes(1);
+            tdelta += boost::posix_time::minutes(1);
             if (tdelta >= tpAllowableGap) {
               cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
             }
