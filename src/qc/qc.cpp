@@ -25,7 +25,7 @@ using fxlib::conversion::string_widen;
 using boost::posix_time::to_simple_string;
 using boost::gregorian::to_simple_string;
 
-static const boost::posix_time::minutes tpAllowableGap{15};
+static const boost::posix_time::minutes tpAllowableGap{60};
 
 int main(int argc, char* argv[])
 {
@@ -176,6 +176,9 @@ int main(int argc, char* argv[])
               tdelta += candle.time - open_period.begin();
             }
             tdelta += boost::posix_time::minutes(1);
+            if (tdelta >= boost::posix_time::hours(24)) {
+              throw std::logic_error("A gap more than a day " + to_simple_string(tdelta));
+            }
             if (tdelta >= tpAllowableGap) {
               cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
             }
