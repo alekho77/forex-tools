@@ -55,46 +55,10 @@ bool IsGMTDFST(const boost::gregorian::date& date) noexcept {
   return date >= *ditr_dst_start && date < *ditr_dst_end;
 }
 
-bool IsForexHolidays(const boost::gregorian::date& d) noexcept {
-  using namespace boost::gregorian;
-  static const std::set<date> holidays = {
-    date(2014, Nov, 1),
-    date(2014, Nov, 2),
-    date(2014, Nov, 3),
-    date(2014, Nov, 9),
-    date(2014, Nov, 10),
-    date(2014, Nov, 22),
-    date(2014, Nov, 23),
-    date(2014, Nov, 24),
-    date(2015, Jan, 10),
-    date(2015, Jan, 17),
-    date(2015, Jan, 24),
-    date(2015, Feb, 1),
-    date(2015, Feb, 7),
-  };
-  return holidays.count(d) != 0;
-}
-
-time_period ForexSuspension(const boost::gregorian::date& d) noexcept {
-  using namespace boost::gregorian;
-  static const std::map<date, time_period> suspesions = {
-    {date(2014, Nov, 6),{ptime(date(2014, Nov, 6), minutes(1)), ptime(date(2014, Nov, 6), time_duration(16,31,0))}},
-    {date(2014, Nov, 7),{ptime(date(2014, Nov, 7), time_duration(9,1,0)), ptime(date(2014, Nov, 7), time_duration(24,1,0))}},
-  };
-  const auto iter = suspesions.find(d);
-  if (iter != suspesions.end()) {
-    return iter->second;
-  }
-  return {ptime(d, minutes(1)), hours(24)};
-}
-
 time_period ForexOpenHours(const boost::gregorian::date& d) noexcept {
   using namespace boost::gregorian;
   switch (d.day_of_week()) {
     case Sunday:
-      if (IsForexHolidays(d)) {
-        break;
-      }
       if (IsGMTDFST(d)) {
         return time_period(ptime(d, d.month() == Oct ? time_duration(22,1,0) : time_duration(23,1,0)), ptime(d, time_duration(24,1,0)));
       }
@@ -104,14 +68,8 @@ time_period ForexOpenHours(const boost::gregorian::date& d) noexcept {
     case Wednesday:
     case Thursday:
     case Friday:
-      if (IsForexHolidays(d)) {
-        return time_period(ptime(d, hours(10)), ptime(d, time_duration(24, 1, 0)));
-      }
-      return time_period(ptime(d, minutes(1)), hours(24)).intersection(ForexSuspension(d));
+      return time_period(ptime(d, minutes(1)), hours(24));
     case Saturday:
-      if (IsForexHolidays(d)) {
-        return time_period(ptime(d, minutes(1)), hours(2));
-      }
       return time_period(ptime(d, minutes(1)), IsGMTDFST(d) ? hours(2) : hours(3));
     default:
       break;
