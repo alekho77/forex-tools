@@ -24,8 +24,9 @@ using fxlib::conversion::string_widen;
 
 using boost::posix_time::to_simple_string;
 using boost::gregorian::to_simple_string;
+using boost::posix_time::minutes;
 
-static const boost::posix_time::minutes tpAllowableGap{60};
+static const minutes tpAllowableGap{60};
 
 int main(int argc, char* argv[])
 {
@@ -133,7 +134,7 @@ int main(int argc, char* argv[])
       const boost::gregorian::date_period& file_period = get<1>(src);
       boost::gregorian::day_iterator ditr{file_period.begin()};
       boost::posix_time::time_period open_period = fxlib::ForexOpenHours(*ditr);
-      boost::posix_time::time_iterator titr{open_period.begin(), boost::posix_time::minutes(1)};
+      boost::posix_time::time_iterator titr{open_period.begin(), minutes(1)};
 
       cout << "Reading " << fullfilename << " " << file_period << "..." << endl;
       while (!fin.eof()) {
@@ -154,14 +155,12 @@ int main(int argc, char* argv[])
           // It assumes that an empty line is not supported in the source files.
           const fxlib::fxcandle candle = fxlib::MakeFromFinam(line, pair_name);
           // Test parsed candle data
-          if (candle.time != *titr) {
-            if (candle.time < *titr) {
-              throw std::logic_error("Wrong candle time " + to_simple_string(candle.time) + " that is less than expected time " + to_simple_string(*titr));
-            }
+          if (candle.time < *titr) {
+            throw std::logic_error("Wrong candle time " + to_simple_string(candle.time) + " that is less than expected time " + to_simple_string(*titr));
+          }
+          if (candle.time > *titr) {
             boost::posix_time::time_duration tdelta;
-            if (candle.time < open_period.end()) {
-              tdelta = candle.time - *titr;
-            } else {
+            if (candle.time.date() > *ditr) {
               tdelta = open_period.end() - *titr;
               for (++ditr; ditr < candle.time.date(); ++ditr) {
                 tdelta += fxlib::ForexOpenHours(*ditr).length();
@@ -171,19 +170,30 @@ int main(int argc, char* argv[])
               }
               open_period = fxlib::ForexOpenHours(*ditr);
               if (candle.time < open_period.begin() || candle.time >= open_period.end()) {
-                throw std::logic_error("Candle date-time " + to_simple_string(candle.time) + " is out of open period " + to_simple_string(open_period));
+                cout << "[WARN] Line: " << line_count << " - Candle date-time " << candle.time << " is out of open period " << open_period << endl;
+                if (candle.time < open_period.begin()) {
+                  open_period = boost::posix_time::time_period(candle.time, open_period.end());
+                } else {
+                  open_period = boost::posix_time::time_period(open_period.begin(), candle.time + minutes(1));
+                }
               }
               tdelta += candle.time - open_period.begin();
+            } else {  // A date is not shifted
+              tdelta = candle.time - *titr + minutes(1);
+              if (candle.time >= open_period.end()) {
+                cout << "[WARN] Line: " << line_count << " - Candle date-time " << candle.time << " is out of open period " << open_period << endl;
+                open_period = boost::posix_time::time_period(open_period.begin(), candle.time + minutes(1));
+              }
             }
-            tdelta += boost::posix_time::minutes(1);
+            //tdelta += ;
             //if (tdelta >= boost::posix_time::hours(24)) {
             //  throw std::logic_error("A gap more than a day " + to_simple_string(tdelta));
             //}
             if (tdelta >= tpAllowableGap) {
-              cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
+              cout << "[INFO] Line: " << line_count << ". Gap " << tdelta << endl;
             }
-            titr = {candle.time, boost::posix_time::minutes(1)};
-          }  // if (candle.time != *titr)
+            titr = {candle.time, minutes(1)};
+          }  // if (candle.time > *titr)
         } catch (const std::exception& e) {
           ostringstream ostr;
           ostr << "Line: " << line_count << " - " << e.what();
@@ -199,7 +209,7 @@ int main(int argc, char* argv[])
           if (ditr >= file_period.end()) {
             open_period = boost::posix_time::time_period(boost::posix_time::ptime(*ditr), boost::posix_time::hours(0));
           }
-          titr = {open_period.begin(), boost::posix_time::minutes(1)};
+          titr = {open_period.begin(), minutes(1)};
         }
       }  // while !fin.eof()
 
@@ -209,7 +219,7 @@ int main(int argc, char* argv[])
         tdelta += fxlib::ForexOpenHours(*ditr).length();
       }
       if (tdelta >= tpAllowableGap) {
-        cout << "[WARN] Line: " << line_count << ". Gap " << tdelta << endl;
+        cout << "[INFO] Line: " << line_count << ". Gap " << tdelta << endl;
       }
 
     }  // for src_list
