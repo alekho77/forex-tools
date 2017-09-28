@@ -158,23 +158,25 @@ int main(int argc, char* argv[])
           // It assumes that an empty line is not supported in the source files.
           const fxlib::fxcandle candle = fxlib::MakeFromFinam(line, pair_name);
           // Test parsed candle data
-          if (candle.time.date() >= file_period.end()) {
+          const boost::gregorian::date curr_date = (candle.time - minutes(1)).date();
+          if (curr_date >= file_period.end()) {
             throw std::logic_error("Found extra data that is out of file period " + to_simple_string(file_period));
           }
           time_duration delta;
           if (previous_time.is_initialized()) {
-            if (candle.time <= previous_time) {
+            if (candle.time <= *previous_time) {
               throw std::logic_error("Wrong candle time " + to_simple_string(candle.time) + " that is less or equal previous time " + to_simple_string(*previous_time));
             }
             delta = candle.time - *previous_time;
-            if ((delta > minutes(1)) && (candle.time.date() > previous_time->date())) {
-              delta = (previous_time->date().day_of_week() == boost::gregorian::Saturday) ? minutes(0) : ptime(previous_time->date(), hours(24)) - *previous_time;
-              boost::gregorian::day_iterator ditr{previous_time->date()};
-              for (++ditr; ditr < candle.time.date(); ++ditr) {
+            const boost::gregorian::date prev_date = (*previous_time - minutes(1)).date();
+            if ((delta > minutes(1)) && (curr_date > prev_date)) {
+              delta = (prev_date.day_of_week() == boost::gregorian::Saturday) ? minutes(0) : (ptime(prev_date, hours(24)) - *previous_time);
+              boost::gregorian::day_iterator ditr{prev_date};
+              for (++ditr; ditr < curr_date; ++ditr) {
                 delta += fxlib::ForexOpenHours(*ditr).length();
               }
-              if (candle.time.date().day_of_week() != boost::gregorian::Sunday) {
-                delta += candle.time - ptime(candle.time.date());
+              if (curr_date.day_of_week() != boost::gregorian::Sunday) {
+                delta += candle.time - ptime(curr_date);
               }
             }  // if ((delta > minutes(1)) && (candle.time.date() > previous_time->date()))
           } else { // if (previous_time.is_initialized())
@@ -184,7 +186,7 @@ int main(int argc, char* argv[])
             cout << "[INFO] Line: " << line_count << ". Gap " << delta << endl;
           }
           previous_time = candle.time;
-          const time_period open_period = fxlib::ForexOpenHours(candle.time.date());
+          const time_period open_period = fxlib::ForexOpenHours(curr_date);
           if (!open_period.contains(candle.time)) {
             cout << "[WARN] Line: " << line_count << " - Candle date-time " << candle.time << " is out of open period " << open_period << endl;
           }
