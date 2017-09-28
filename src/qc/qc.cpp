@@ -36,6 +36,16 @@ using boost::gregorian::from_undelimited_string;
 
 static const minutes tpAllowableGap{60};
 
+time_duration CalcLongGap(const ptime& last_time, const boost::gregorian::date& date) {
+  const boost::gregorian::date last_date = (last_time - minutes(1)).date();
+  time_duration delta = (last_date.day_of_week() == boost::gregorian::Saturday) ? minutes(0) : (ptime(last_date, hours(24)) - last_time);
+  boost::gregorian::day_iterator ditr{last_date};
+  for (++ditr; ditr < date; ++ditr) {
+    delta += fxlib::ForexOpenHours(*ditr).length();
+  }
+  return delta;
+}
+
 int main(int argc, char* argv[])
 {
   using namespace std;
@@ -170,17 +180,16 @@ int main(int argc, char* argv[])
             delta = candle.time - *previous_time;
             const boost::gregorian::date prev_date = (*previous_time - minutes(1)).date();
             if ((delta > minutes(1)) && (curr_date > prev_date)) {
-              delta = (prev_date.day_of_week() == boost::gregorian::Saturday) ? minutes(0) : (ptime(prev_date, hours(24)) - *previous_time);
-              boost::gregorian::day_iterator ditr{prev_date};
-              for (++ditr; ditr < curr_date; ++ditr) {
-                delta += fxlib::ForexOpenHours(*ditr).length();
-              }
+              delta = CalcLongGap(*previous_time, curr_date);
               if (curr_date.day_of_week() != boost::gregorian::Sunday) {
                 delta += candle.time - ptime(curr_date);
               }
             }  // if ((delta > minutes(1)) && (candle.time.date() > previous_time->date()))
           } else { // if (previous_time.is_initialized())
-            delta = candle.time - ptime(file_period.begin());
+            delta = curr_date > file_period.begin() ? CalcLongGap(ptime(file_period.begin()) + minutes(1), curr_date) : minutes(0);
+            if (curr_date.day_of_week() != boost::gregorian::Sunday) {
+              delta += candle.time - ptime(curr_date);
+            }
           }
           if (delta >= tpAllowableGap) {
             cout << "[INFO] Line: " << line_count << ". Gap " << delta << endl;
@@ -200,7 +209,7 @@ int main(int argc, char* argv[])
       if (!previous_time.is_initialized()) {
         throw string("File is empty!");
       }
-      time_duration delta = ptime(file_period.end()) - *previous_time;
+      time_duration delta = CalcLongGap(*previous_time, file_period.end());
       if (delta >= tpAllowableGap) {
         cout << "[INFO] Line: " << line_count << ". Gap " << delta << endl;
       }
