@@ -9,10 +9,11 @@ namespace fxlib {
 
 struct fxcandle {
   boost::posix_time::ptime time;
-  double    open;
-  double    close;
-  double    high;
-  double    low;
+  double open;
+  double close;
+  double high;
+  double low;
+  size_t volume;
 };
 
 enum class fxperiodicity : int {

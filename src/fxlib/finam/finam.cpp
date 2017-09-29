@@ -41,8 +41,7 @@ fxcandle MakeFromFinam(const std::string & line, const std::string& pair_name) n
   if (!boost::conversion::try_lexical_convert(what["LOW"], candle.low)) {
     throw std::logic_error("Found wrong LOW quotation " + what["LOW"]);
   }
-  int vol;  // Currently the volume is not used.
-  if (!boost::conversion::try_lexical_convert(what["VOL"], vol)) {
+  if (!boost::conversion::try_lexical_convert(what["VOL"], candle.volume)) {
     throw std::logic_error("Found wrong volume field " + what["VOL"]);
   }
   return candle;

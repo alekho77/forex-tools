@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/optional.hpp>
+#include <boost/program_options.hpp>
 
 #include <vector>
 #include <string>
@@ -34,6 +35,15 @@ using boost::gregorian::date_period;
 using boost::gregorian::to_simple_string;
 using boost::gregorian::from_undelimited_string;
 
+using boost::program_options::options_description;
+using boost::program_options::value;
+using boost::program_options::variables_map;
+using boost::program_options::parse_command_line;
+using boost::program_options::store;
+using boost::program_options::parsed_options;
+using boost::program_options::notify;
+using boost::program_options::error;
+
 static const minutes tpAllowableGap{60};
 
 time_duration CalcLongGap(const ptime& last_time, const boost::gregorian::date& date) {
@@ -50,6 +60,23 @@ int main(int argc, char* argv[])
 {
   using namespace std;
   cout << "Forex Quotation Compiler" << endl;
+
+  options_description desc("Command line options");
+  desc.add_options()
+    ("help,h", "Show help");
+  variables_map vm;
+  try {
+    store(parse_command_line(argc, argv, desc), vm);
+  } catch (const error& e) {
+    cout << e.what() << endl;
+    return boost::system::errc::invalid_argument;
+  }
+  notify(vm);
+  if (vm.empty() || vm.count("help")) {
+    cout << desc << endl;
+    return boost::system::errc::invalid_argument;
+  }
+
   if (argc < 3 || argc > 4) {
     cout << "[NOTE] Parameters are required" << endl;
     cout << ">qc {src-dir} {pair-name} [out-file]" << endl;
@@ -168,6 +195,9 @@ int main(int argc, char* argv[])
           // It assumes that an empty line is not supported in the source files.
           const fxlib::fxcandle candle = fxlib::MakeFromFinam(line, pair_name);
           // Test parsed candle data
+          if (candle.volume == 0) {
+            throw std::logic_error("Empty candle volume");
+          }
           const boost::gregorian::date curr_date = (candle.time - minutes(1)).date();
           if (curr_date >= file_period.end()) {
             cout << "[WARN] Line:" << line_count << " - extra data that is out of file period " + to_simple_string(file_period) << ". All further data will be skipped!" << endl;
@@ -200,6 +230,8 @@ int main(int argc, char* argv[])
           if (!open_period.contains(candle.time)) {
             cout << "[WARN] Line: " << line_count << " - Candle date-time " << candle.time << " is out of open period " << open_period << endl;
           }
+
+          seq.candles.push_back(candle);
         } catch (const std::exception& e) {
           ostringstream ostr;
           ostr << "Line: " << line_count << " - " << e.what();
@@ -215,6 +247,9 @@ int main(int argc, char* argv[])
         cout << "[INFO] Line: " << line_count << ". Gap " << delta << endl;
       }
     }  // for src_list
+
+    cout << "It has been read " << seq.candles.size() << " quotes." << endl;
+    cout << "Writing " << out_path << "..." << endl;
 
     //ofstream fout(string_narrow(out_path.c_str()), ofstream::binary);
     //if (!fout.good()) {
