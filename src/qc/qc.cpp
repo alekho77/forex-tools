@@ -170,7 +170,8 @@ int main(int argc, char* argv[])
           // Test parsed candle data
           const boost::gregorian::date curr_date = (candle.time - minutes(1)).date();
           if (curr_date >= file_period.end()) {
-            throw std::logic_error("Found extra data that is out of file period " + to_simple_string(file_period));
+            cout << "[WARN] Line:" << line_count << " - extra data that is out of file period " + to_simple_string(file_period) << ". All further data will be skipped!" << endl;
+            break;
           }
           time_duration delta;
           if (previous_time.is_initialized()) {
@@ -192,7 +193,7 @@ int main(int argc, char* argv[])
             }
           }
           if (delta >= tpAllowableGap) {
-            cout << "[INFO] Line: " << line_count << ". Gap " << delta << endl;
+            cout << "[INFO] Line: " << line_count << " - Gap " << delta << endl;
           }
           previous_time = candle.time;
           const time_period open_period = fxlib::ForexOpenHours(curr_date);
