@@ -40,9 +40,11 @@ using boost::program_options::value;
 using boost::program_options::variables_map;
 using boost::program_options::parse_command_line;
 using boost::program_options::store;
-using boost::program_options::parsed_options;
+//using boost::program_options::parsed_options;
 using boost::program_options::notify;
 using boost::program_options::error;
+using boost::program_options::command_line_parser;
+//using boost::program_options::bool_switch;
 
 static const minutes tpAllowableGap{60};
 
@@ -61,46 +63,51 @@ int main(int argc, char* argv[])
   using namespace std;
   cout << "Forex Quotation Compiler" << endl;
 
-  options_description desc("Command line options");
-  desc.add_options()
-    ("help,h", "Show help");
+  string src_dir;
+  string pair_name;
   variables_map vm;
   try {
+    options_description desc("Command line options");
+    desc.add_options()
+      ("help,h", "Show help");
+    options_description compile_desc(200);
+    compile_desc.add_options()
+      ("source,s", value<string>(&src_dir)->required()->value_name("src-dir"), "Path to source directory.")
+      ("pair,p", value<string>(&pair_name)->required()->value_name("pair-name"), "Quotation pair name.")
+      ("out,o", value<string>()->value_name("out-file"), "Filename to binary output, 'pair-name.bin' by default.")
+      ("rewrite,r", "Rewrite existing output file.")
+      ("gap,g", value<int>()->value_name("min")->default_value(60), "Allowable gap in minutes, 0 - to suppress informing.")
+      ("warn,w", value<string>()->default_value("true")->implicit_value("true"), "Show warnings.");
+    store(command_line_parser(argc, argv).options(desc).allow_unregistered().run(), vm);
+    notify(vm);
+    desc.add(compile_desc);
+    if (vm.empty() || vm.count("help")) {
+      cout << desc << endl;
+      return boost::system::errc::invalid_argument;
+    }
     store(parse_command_line(argc, argv, desc), vm);
+    notify(vm);
   } catch (const error& e) {
     cout << e.what() << endl;
     return boost::system::errc::invalid_argument;
   }
-  notify(vm);
-  if (vm.empty() || vm.count("help")) {
-    cout << desc << endl;
-    return boost::system::errc::invalid_argument;
-  }
-
-  if (argc < 3 || argc > 4) {
-    cout << "[NOTE] Parameters are required" << endl;
-    cout << ">qc {src-dir} {pair-name} [out-file]" << endl;
-    cout << "    {out-file} is {pair-name}.bin by default." << endl;
-    return boost::system::errc::invalid_argument;
-  }
 
   boost::system::error_code ec;
-  boost::filesystem::path src_path = boost::filesystem::canonical({argv[1]}, ec);
+  boost::filesystem::path src_path = boost::filesystem::canonical(src_dir, ec);
   if (ec) {
-    cout << "[ERROR] Source directory \"" << argv[1] << "\" has not found" << endl;
+    cout << "[ERROR] Source directory \"" << src_dir << "\" has not found" << endl;
     return ec.value();
   }
   
-  string pair_name = argv[2];
   if (!fxlib::IsPair(pair_name)) {
-    cout << "[ERROR] The pair name " << argv[2] << " is not valid";
+    cout << "[ERROR] The pair name " << pair_name << " is not valid";
     return boost::system::errc::invalid_argument;
   }
   boost::algorithm::to_upper(pair_name);
 
   boost::filesystem::path out_file = pair_name + ".bin";
-  if (argc == 4) {
-    out_file = argv[3];
+  if (vm.count("out")) {
+    out_file = vm["out"].as<string>();
   }
   boost::filesystem::path out_path = boost::filesystem::canonical(out_file.parent_path(), ec);
   if (ec) {
