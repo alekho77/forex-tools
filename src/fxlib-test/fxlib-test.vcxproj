@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="finam_test.cpp" />
+    <ClCompile Include="fxquote_test.cpp" />
     <ClCompile Include="fxtime_test.cpp" />
   </ItemGroup>
   <ItemGroup>
