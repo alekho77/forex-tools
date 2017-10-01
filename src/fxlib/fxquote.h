@@ -33,4 +33,8 @@ struct fxsequence {
   std::vector<fxcandle> candles;
 };
 
+// Binary writing/reading quote sequence into a stream.
+std::ostream& operator << (std::ostream& out, const fxsequence& seq) noexcept(false);
+std::istream& operator >> (std::istream& in, fxsequence& seq) noexcept(false);
+
 }  // namespace fxlib

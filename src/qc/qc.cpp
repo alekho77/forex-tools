@@ -289,7 +289,10 @@ int main(int argc, char* argv[])
     if (!fout.good()) {
       throw "Could not open " + string_narrow(out_path.c_str());
     }
-
+    fout << seq;
+    if (!fout.good()) {
+      throw "Could not write data to " + string_narrow(out_path.c_str());
+    }
   } catch (const string& e) {
     cout << "[ERROR] " << e << endl;
     return boost::system::errc::io_error;
