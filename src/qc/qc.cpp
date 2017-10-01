@@ -40,13 +40,9 @@ using boost::program_options::value;
 using boost::program_options::variables_map;
 using boost::program_options::parse_command_line;
 using boost::program_options::store;
-//using boost::program_options::parsed_options;
 using boost::program_options::notify;
 using boost::program_options::error;
 using boost::program_options::command_line_parser;
-//using boost::program_options::bool_switch;
-
-static const minutes tpAllowableGap{60};
 
 time_duration CalcLongGap(const ptime& last_time, const boost::gregorian::date& date) {
   const boost::gregorian::date last_date = (last_time - minutes(1)).date();
@@ -58,40 +54,59 @@ time_duration CalcLongGap(const ptime& last_time, const boost::gregorian::date& 
   return delta;
 }
 
+void PrintCommandLineOptions(const std::vector<options_description>& opts) {
+  using namespace std;
+  options_description desc;
+  for (const auto& opt: opts) {
+    desc.add(opt);
+  }
+  cout << endl << "Command line options:" << endl << desc << endl;
+}
+
+bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
+  using namespace std;
+  options_description basic_desc("Basic options", 200);
+  basic_desc.add_options()
+    ("help,h", "Show help");
+  options_description compile_desc("Compile options", 200);
+  compile_desc.add_options()
+    ("source,s", value<string>()->required()->value_name("src-dir"), "Path to source directory.")
+    ("pair,p", value<string>()->required()->value_name("pair-name"), "Quotation pair name.")
+    ("out,o", value<string>()->value_name("out-file"), "Filename to binary output, 'pair-name.bin' by default.");
+  options_description additional_desc("Additional options", 200);
+  additional_desc.add_options()
+    ("rewrite,r", "Rewrite existing output file.")
+    ("gap,g", value<int>()->value_name("min")->default_value(60), "Allowable gap in minutes, 0 - to suppress informing.")
+    ("warn,w", value<string>()->value_name("on/off")->default_value("on")->implicit_value("on"), "Show warnings.");
+  try {
+    store(command_line_parser(argc, argv).options(basic_desc).allow_unregistered().run(), vm);
+    notify(vm);
+    if (vm.count("help")) {
+      PrintCommandLineOptions({basic_desc, compile_desc, additional_desc});
+      return false;
+    }
+    options_description desc;
+    store(parse_command_line(argc, argv, desc.add(compile_desc).add(additional_desc)), vm);
+    notify(vm);
+  } catch (const error& e) {
+    cout << "[ERROR] Command line: " << e.what() << endl;
+    PrintCommandLineOptions({basic_desc, compile_desc, additional_desc});
+    return false;
+  }
+  return true;
+}
+
 int main(int argc, char* argv[])
 {
   using namespace std;
   cout << "Forex Quotation Compiler" << endl;
 
-  string src_dir;
-  string pair_name;
   variables_map vm;
-  try {
-    options_description desc("Command line options");
-    desc.add_options()
-      ("help,h", "Show help");
-    options_description compile_desc(200);
-    compile_desc.add_options()
-      ("source,s", value<string>(&src_dir)->required()->value_name("src-dir"), "Path to source directory.")
-      ("pair,p", value<string>(&pair_name)->required()->value_name("pair-name"), "Quotation pair name.")
-      ("out,o", value<string>()->value_name("out-file"), "Filename to binary output, 'pair-name.bin' by default.")
-      ("rewrite,r", "Rewrite existing output file.")
-      ("gap,g", value<int>()->value_name("min")->default_value(60), "Allowable gap in minutes, 0 - to suppress informing.")
-      ("warn,w", value<string>()->default_value("true")->implicit_value("true"), "Show warnings.");
-    store(command_line_parser(argc, argv).options(desc).allow_unregistered().run(), vm);
-    notify(vm);
-    desc.add(compile_desc);
-    if (vm.empty() || vm.count("help")) {
-      cout << desc << endl;
-      return boost::system::errc::invalid_argument;
-    }
-    store(parse_command_line(argc, argv, desc), vm);
-    notify(vm);
-  } catch (const error& e) {
-    cout << e.what() << endl;
+  if (!TryParseCommandLine(argc, argv, vm)) {
     return boost::system::errc::invalid_argument;
   }
 
+  string src_dir = vm["source"].as<string>();
   boost::system::error_code ec;
   boost::filesystem::path src_path = boost::filesystem::canonical(src_dir, ec);
   if (ec) {
@@ -99,6 +114,7 @@ int main(int argc, char* argv[])
     return ec.value();
   }
   
+  string pair_name = vm["pair"].as<string>();
   if (!fxlib::IsPair(pair_name)) {
     cout << "[ERROR] The pair name " << pair_name << " is not valid";
     return boost::system::errc::invalid_argument;
@@ -115,11 +131,22 @@ int main(int argc, char* argv[])
     return ec.value();
   }
   out_path.append(out_file.filename().c_str());
-  //if (boost::filesystem::exists(out_path)) {
-  //  // TODO: add hash checking to be sure that really nothing to do.
-  //  cout << "[NOTE] The binary file " << out_path << " already exists. Nothing to do." << endl;
-  //  return boost::system::errc::success;
-  //}
+
+  if (vm.count("rewrite")) {
+    boost::filesystem::remove(out_path);
+  }
+  if (boost::filesystem::exists(out_path)) {
+    // TODO: add hash checking to be sure that really nothing to do.
+    cout << "[NOTE] The binary file " << out_path << " already exists. Nothing to do." << endl;
+    return boost::system::errc::success;
+  }
+
+  const minutes allowable_gap{vm["gap"].as<int>()};
+  bool warning = true;
+  if (!fxlib::conversion::try_to_bool(vm["warn"].as<string>(), warning)) {
+    cout << "[ERROR] The option 'warn=" << vm["warn"].as<string>() << "' has not been recognized.";
+    return boost::system::errc::invalid_argument;
+  }
 
   cout << "Compile all [" << pair_name << "]-files in " << src_path << " to binary file " << out_path << endl;
 
@@ -206,7 +233,7 @@ int main(int argc, char* argv[])
             throw std::logic_error("Empty candle volume");
           }
           const boost::gregorian::date curr_date = (candle.time - minutes(1)).date();
-          if (curr_date >= file_period.end()) {
+          if (warning && curr_date >= file_period.end()) {
             cout << "[WARN] Line:" << line_count << " - extra data that is out of file period " + to_simple_string(file_period) << ". All further data will be skipped!" << endl;
             break;
           }
@@ -229,12 +256,12 @@ int main(int argc, char* argv[])
               delta += candle.time - ptime(curr_date);
             }
           }
-          if (delta >= tpAllowableGap) {
+          if (warning && delta >= allowable_gap) {
             cout << "[INFO] Line: " << line_count << " - Gap " << delta << endl;
           }
           previous_time = candle.time;
           const time_period open_period = fxlib::ForexOpenHours(curr_date);
-          if (!open_period.contains(candle.time)) {
+          if (warning && !open_period.contains(candle.time)) {
             cout << "[WARN] Line: " << line_count << " - Candle date-time " << candle.time << " is out of open period " << open_period << endl;
           }
 
@@ -250,7 +277,7 @@ int main(int argc, char* argv[])
         throw string("File is empty!");
       }
       time_duration delta = CalcLongGap(*previous_time, file_period.end());
-      if (delta >= tpAllowableGap) {
+      if (warning && delta >= allowable_gap) {
         cout << "[INFO] Line: " << line_count << ". Gap " << delta << endl;
       }
     }  // for src_list
@@ -258,10 +285,10 @@ int main(int argc, char* argv[])
     cout << "It has been read " << seq.candles.size() << " quotes." << endl;
     cout << "Writing " << out_path << "..." << endl;
 
-    //ofstream fout(string_narrow(out_path.c_str()), ofstream::binary);
-    //if (!fout.good()) {
-    //  throw "Could not open " + string_narrow(out_path.c_str());
-    //}
+    ofstream fout(string_narrow(out_path.c_str()), ofstream::binary);
+    if (!fout.good()) {
+      throw "Could not open " + string_narrow(out_path.c_str());
+    }
 
   } catch (const string& e) {
     cout << "[ERROR] " << e << endl;
