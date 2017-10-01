@@ -14,12 +14,12 @@ struct fxtime {
 #pragma pack(pop)
 
 static inline std::ostream& operator << (std::ostream& out, const fxtime_bin& data) noexcept {
-  out.write(reinterpret_cast<const char*>(data.data()), data.size());
+  out.write(reinterpret_cast<const char*>(&data), sizeof(data));
   return out;
 }
 
 static inline std::istream& operator >> (std::istream& in, fxtime_bin& data) noexcept {
-  in.read(reinterpret_cast<char*>(data.data()), data.size());
+  in.read(reinterpret_cast<char*>(&data), sizeof(data));
   return in;
 }
 
