@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
     if (!fout.good()) {
       throw "Could not open " + string_narrow(out_path.c_str());
     }
-    fout << seq;
+    fxlib::WriteSequence(fout, seq);
     if (!fout.good()) {
       throw "Could not write data to " + string_narrow(out_path.c_str());
     }

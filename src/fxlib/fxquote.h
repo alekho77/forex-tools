@@ -34,7 +34,7 @@ struct fxsequence {
 };
 
 // Binary writing/reading quote sequence into a stream.
-std::ostream& operator << (std::ostream& out, const fxsequence& seq) noexcept(false);
-std::istream& operator >> (std::istream& in, fxsequence& seq) noexcept(false);
+void WriteSequence(std::ostream& out, const fxsequence& seq) noexcept(false);
+fxsequence ReadSequence(std::istream& in) noexcept(false);
 
 }  // namespace fxlib

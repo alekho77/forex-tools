@@ -21,6 +21,7 @@ using fxperiodicity_bin = uint16_t;
 
 struct fxsequence_header_bin {
   fxperiodicity_bin periodicity;
+  uint32_t count;
   struct {
     fxtime start;
     fxtime end;
