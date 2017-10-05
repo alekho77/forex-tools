@@ -286,16 +286,19 @@ int main(int argc, char* argv[])
     cout << "Writing " << out_path << "..." << endl;
 
     ofstream fout(string_narrow(out_path.c_str()), ofstream::binary);
-    if (!fout.good()) {
+    if (!fout) {
       throw "Could not open " + string_narrow(out_path.c_str());
     }
     fxlib::WriteSequence(fout, seq);
-    if (!fout.good()) {
+    if (!fout) {
       throw "Could not write data to " + string_narrow(out_path.c_str());
     }
   } catch (const string& e) {
     cout << "[ERROR] " << e << endl;
     return boost::system::errc::io_error;
+  } catch (const exception& e) {
+    cout << "[ERROR] " << e.what() << endl;
+    return boost::system::errc::invalid_argument;
   }
 
   return boost::system::errc::success;
