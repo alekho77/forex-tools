@@ -21,7 +21,7 @@ enum class fxperiodicity : int {
   minutely = 1,
   hourly = 60 * minutely,
   daily = 24 * hourly,
-  weekly = 5 * daily,
+  weekly = 5 * daily + 6 * hourly,
   monthly = 4 * weekly + 2 * daily
 };
 
