@@ -15,6 +15,9 @@
 #include <exception>
 #include <map>
 #include <vector>
+#include <algorithm>
+#include <cmath>
+//#include <functional>
 
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
@@ -126,8 +129,9 @@ int main(int argc, char* argv[]) {
                                           {"h", static_cast<int>(fxlib::fxperiodicity::hourly)},
                                           {"d", static_cast<int>(fxlib::fxperiodicity::daily)},
                                           {"w", static_cast<int>(fxlib::fxperiodicity::weekly)}};
-      const time_duration timeout = minutes(fxperiods.at(what_tm[2]));
+      const time_duration timeout = minutes(tm_val * fxperiods.at(what_tm[2]));
       const string positon = boost::algorithm::to_lower_copy(vm["position"].as<string>());
+      //function<double(const fxlib::fxcandle& )>
       if (positon == "long") {
 
       } else if (positon == "short") {
@@ -141,17 +145,47 @@ int main(int argc, char* argv[]) {
       max_limits.reserve(seq.candles.size());
       max_losses.reserve(seq.candles.size());
       size_t curr_idx = 0;
-      map<size_t, string> progress_tags;
-      for (size_t i = 1; i < 10; i++) {
-        const string tag = "processed " + to_string(i * 10) + "%";
-        progress_tags.insert({(i * seq.candles.size()) / 10, tag});
-      }
-      for (auto citer = seq.candles.begin(); citer < seq.candles.end() && citer->time <= (seq.candles.back().time - timeout); ++citer, ++curr_idx) {
-        auto itag = progress_tags.find(curr_idx);
-        if (itag != progress_tags.end()) {
-          cout << itag->second << endl;
+      int progress = 1;
+      size_t progress_idx = (progress * seq.candles.size()) / 10;
+      double mean_limit = 0;
+      double mean_loss  = 0;
+      for (auto piter = seq.candles.begin(); piter < seq.candles.end() && piter->time <= (seq.candles.back().time - timeout); ++piter, ++curr_idx) {
+        if (curr_idx == progress_idx) {
+          cout << piter->time << " processed " << (progress * 10) << "%" << endl;
+          progress_idx = (++progress * seq.candles.size()) / 10;
         }
+        auto profit = [&piter](const fxlib::fxcandle& c) { return c.low - piter->high; };
+        max_limits.push_back(profit(*piter));
+        max_losses.push_back(-profit(*piter));
+        for (auto citer = piter + 1; citer < seq.candles.end() && citer->time <= (piter->time + timeout); ++citer) {
+          max_limits.back() = (max)(max_limits.back(), profit(*citer));
+          max_losses.back() = (max)(max_losses.back(), -profit(*citer));
+        }
+        mean_limit += max_limits.back();
+        mean_loss  += max_losses.back();
       }
+      if (max_limits.size() < 2 || max_losses.size() < 2 || max_limits.size() != max_losses.size()) {
+        throw logic_error("No result");
+      }
+      mean_limit /= max_limits.size();
+      mean_loss  /= max_losses.size();
+      double var_limit2 = 0;
+      double var_loss2  = 0;
+      for (size_t i = 0; i < max_limits.size(); i++) {
+        const double dl = max_limits[i] - mean_limit;
+        const double ds = max_losses[i] - mean_loss;
+        var_limit2 += dl * dl;
+        var_loss2  += ds * ds;
+      }
+      var_limit2 /= (max_limits.size() - 1);
+      var_loss2  /= (max_losses.size() - 1);
+      cout << "Done" << endl;
+      cout << "----------------------------------" << endl;
+      cout << "Sample size (N) = " << max_limits.size() << endl << endl;
+      cout << "Limit mean      = " << mean_limit << endl;
+      cout << "Limit variance  = " << sqrt(var_limit2) << endl << endl;
+      cout << "Loss mean       = " << mean_loss << endl;
+      cout << "Loss variance   = " << sqrt(var_loss2) << endl;
     }  // if quick
   } catch (const system_error& e) {
     cout << "[ERROR] " << e.what() << endl;
