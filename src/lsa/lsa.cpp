@@ -54,23 +54,27 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   quick_desc.add_options()
     ("position,p", value<string>()->required()->value_name("{long|short}"), "What position to be analyzed.")
     ("timeout,t", value<string>()->required()->value_name("n{m,h,d,w}"), "How far to look into future (minutes, hours, days, weeks).");
+  options_description additional_desc("Additional options", 200);
+  additional_desc.add_options()
+    ("pip,z", value<double>()->value_name("size"), "Pip size, usually 0.0001 or 0.01");
+  const std::vector<options_description> list_desc = {basic_desc, generic_desc, quick_desc, additional_desc};
   try {
     store(command_line_parser(argc, argv).options(basic_desc).options(generic_desc).allow_unregistered().run(), vm);
     notify(vm);
     if (vm.count("help")) {
-      PrintCommandLineOptions({basic_desc, generic_desc, quick_desc});
+      PrintCommandLineOptions(list_desc);
       return false;
     }
     if (quick_mode) {
       options_description desc;
-      store(parse_command_line(argc, argv, desc.add(generic_desc).add(quick_desc)), vm);
+      store(parse_command_line(argc, argv, desc.add(generic_desc).add(quick_desc).add(additional_desc)), vm);
       notify(vm);
     } else {
       throw error("No one mode of analyze has been found!");
     }
   } catch (const error& e) {
     cout << "[ERROR] Command line: " << e.what() << endl;
-    PrintCommandLineOptions({basic_desc, generic_desc, quick_desc});
+    PrintCommandLineOptions(list_desc);
     return false;
   }
   return true;
@@ -111,6 +115,12 @@ int main(int argc, char* argv[]) {
     }
     if (seq.candles.empty()) {
       throw logic_error("No data was found in sequence");
+    }
+    double pip = 0;
+    if (vm.count("pip")) {
+      pip = vm["pip"].as<double>();
+    } else {
+      throw invalid_argument("Unknown pip size for pair '" + bin_file.filename().stem().string() + "'");
     }
     if (vm.count("quick")) {
       const string str_tm = vm["timeout"].as<string>();
@@ -157,7 +167,7 @@ int main(int argc, char* argv[]) {
         }
         mean_limit += max_limits.back();
         mean_loss  += max_losses.back();
-      }
+      }  // for seq.candles
       if (max_limits.size() < 2 || max_losses.size() < 2 || max_limits.size() != max_losses.size()) {
         throw logic_error("No result");
       }
@@ -173,13 +183,13 @@ int main(int argc, char* argv[]) {
       }
       var_limit2 /= (max_limits.size() - 1);
       var_loss2  /= (max_losses.size() - 1);
-      cout << "Done" << endl;
+      cout << "Done"  << fixed << setprecision(1) << endl;
       cout << "----------------------------------" << endl;
       cout << "Sample size (N) = " << max_limits.size() << endl << endl;
-      cout << "Limit mean      = " << mean_limit << endl;
-      cout << "Limit variance  = " << sqrt(var_limit2) << endl << endl;
-      cout << "Loss mean       = " << mean_loss << endl;
-      cout << "Loss variance   = " << sqrt(var_loss2) << endl;
+      cout << "Limit mean      = " << mean_limit / pip << endl;
+      cout << "Limit variance  = " << sqrt(var_limit2) / pip << endl << endl;
+      cout << "Loss mean       = " << mean_loss / pip << endl;
+      cout << "Loss variance   = " << sqrt(var_loss2) / pip << endl;
     }  // if quick
   } catch (const system_error& e) {
     cout << "[ERROR] " << e.what() << endl;
