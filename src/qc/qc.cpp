@@ -4,12 +4,12 @@
 #include "fxlib/fxlib.h"
 #include "fxlib/finam/finam.h"
 #include "fxlib/helpers/string_conversion.h"
+#include "fxlib/helpers/program_options.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/optional.hpp>
-#include <boost/program_options.hpp>
 
 #include <vector>
 #include <string>
@@ -35,15 +35,6 @@ using boost::gregorian::date_period;
 using boost::gregorian::to_simple_string;
 using boost::gregorian::from_undelimited_string;
 
-using boost::program_options::options_description;
-using boost::program_options::value;
-using boost::program_options::variables_map;
-using boost::program_options::parse_command_line;
-using boost::program_options::store;
-using boost::program_options::notify;
-using boost::program_options::error;
-using boost::program_options::command_line_parser;
-
 time_duration CalcLongGap(const ptime& last_time, const boost::gregorian::date& date) {
   const boost::gregorian::date last_date = (last_time - minutes(1)).date();
   time_duration delta = (last_date.day_of_week() == boost::gregorian::Saturday) ? minutes(0) : (ptime(last_date, hours(24)) - last_time);
@@ -52,15 +43,6 @@ time_duration CalcLongGap(const ptime& last_time, const boost::gregorian::date& 
     delta += fxlib::ForexOpenHours(*ditr).length();
   }
   return delta;
-}
-
-void PrintCommandLineOptions(const std::vector<options_description>& opts) {
-  using namespace std;
-  options_description desc;
-  for (const auto& opt: opts) {
-    desc.add(opt);
-  }
-  cout << endl << "Command line options:" << endl << desc << endl;
 }
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
@@ -78,11 +60,12 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     ("rewrite,r", "Rewrite existing output file.")
     ("gap,g", value<int>()->value_name("min")->default_value(60), "Allowable gap in minutes, 0 - to suppress informing.")
     ("warn,w", value<string>()->value_name("on/off")->default_value("on")->implicit_value("on"), "Show warnings.");
+  const auto list_desc = {basic_desc, compile_desc, additional_desc};
   try {
     store(command_line_parser(argc, argv).options(basic_desc).allow_unregistered().run(), vm);
     notify(vm);
     if (vm.count("help")) {
-      PrintCommandLineOptions({basic_desc, compile_desc, additional_desc});
+      cout << list_desc;
       return false;
     }
     options_description desc;
@@ -90,7 +73,7 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     notify(vm);
   } catch (const error& e) {
     cout << "[ERROR] Command line: " << e.what() << endl;
-    PrintCommandLineOptions({basic_desc, compile_desc, additional_desc});
+    cout << list_desc;
     return false;
   }
   return true;

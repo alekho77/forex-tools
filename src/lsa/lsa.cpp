@@ -1,9 +1,6 @@
 #include "fxlib/fxlib.h"
+#include "fxlib/helpers/program_options.h"
 
-#pragma warning(push)
-#pragma warning(disable:4505)  // warning C4505: unreferenced local function has been removed
-#include <boost/program_options.hpp>
-#pragma warning(pop)
 #include <boost/system/error_code.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -21,25 +18,6 @@
 
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
-
-using boost::program_options::options_description;
-using boost::program_options::value;
-using boost::program_options::variables_map;
-using boost::program_options::parse_command_line;
-using boost::program_options::store;
-using boost::program_options::notify;
-using boost::program_options::error;
-using boost::program_options::command_line_parser;
-using boost::program_options::bool_switch;
-
-void PrintCommandLineOptions(const std::vector<options_description>& opts) {
-  using namespace std;
-  options_description desc;
-  for (const auto& opt : opts) {
-    desc.add(opt);
-  }
-  cout << endl << "Command line options:" << endl << desc << endl;
-}
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   using namespace std;
@@ -59,12 +37,12 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   additional_desc.add_options()
     ("pip,z", value<double>()->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
     ("alpha,a", value<double>()->value_name("alpha"), "Risk level (probability: 0.1, 0.01, 0.001 ...).");
-  const std::vector<options_description> list_desc = {basic_desc, generic_desc, quick_desc, additional_desc};
+  const auto list_desc = {basic_desc, generic_desc, quick_desc, additional_desc};
   try {
     store(command_line_parser(argc, argv).options(basic_desc).options(generic_desc).allow_unregistered().run(), vm);
     notify(vm);
     if (vm.count("help")) {
-      PrintCommandLineOptions(list_desc);
+      cout << list_desc;
       return false;
     }
     if (quick_mode) {
@@ -76,7 +54,7 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     }
   } catch (const error& e) {
     cout << "[ERROR] Command line: " << e.what() << endl;
-    PrintCommandLineOptions(list_desc);
+    cout << list_desc;
     return false;
   }
   return true;

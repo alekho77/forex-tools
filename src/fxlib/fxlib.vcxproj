@@ -139,6 +139,7 @@
     <ClInclude Include="fxmath.h" />
     <ClInclude Include="fxquote.h" />
     <ClInclude Include="fxtime.h" />
+    <ClInclude Include="helpers\program_options.h" />
     <ClInclude Include="helpers\fxquote_serializable.h" />
     <ClInclude Include="helpers\fxtime_conversion.h" />
     <ClInclude Include="helpers\fxtime_serializable.h" />
