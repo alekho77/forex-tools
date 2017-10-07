@@ -17,14 +17,9 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-//#include <functional>
 
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
-//using boost::posix_time::hours;
-
-// using boost::gregorian::days;
-// using boost::gregorian::weeks;
 
 using boost::program_options::options_description;
 using boost::program_options::value;
@@ -131,11 +126,11 @@ int main(int argc, char* argv[]) {
                                           {"w", static_cast<int>(fxlib::fxperiodicity::weekly)}};
       const time_duration timeout = minutes(tm_val * fxperiods.at(what_tm[2]));
       const string positon = boost::algorithm::to_lower_copy(vm["position"].as<string>());
-      //function<double(const fxlib::fxcandle& )>
+      double(*profit)(const fxlib::fxcandle&, const fxlib::fxcandle&);
       if (positon == "long") {
-
+        profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return cc.low - co.high; };
       } else if (positon == "short") {
-
+        profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return co.low - cc.high; };
       } else {
         throw invalid_argument("Wrong position '" + positon + "'");
       }
@@ -154,12 +149,11 @@ int main(int argc, char* argv[]) {
           cout << piter->time << " processed " << (progress * 10) << "%" << endl;
           progress_idx = (++progress * seq.candles.size()) / 10;
         }
-        auto profit = [&piter](const fxlib::fxcandle& c) { return c.low - piter->high; };
-        max_limits.push_back(profit(*piter));
-        max_losses.push_back(-profit(*piter));
+        max_limits.push_back(profit(*piter, *piter));
+        max_losses.push_back(-profit(*piter, *piter));
         for (auto citer = piter + 1; citer < seq.candles.end() && citer->time <= (piter->time + timeout); ++citer) {
-          max_limits.back() = (max)(max_limits.back(), profit(*citer));
-          max_losses.back() = (max)(max_losses.back(), -profit(*citer));
+          max_limits.back() = (max)(max_limits.back(), profit(*citer, *piter));
+          max_losses.back() = (max)(max_losses.back(), -profit(*citer, *piter));
         }
         mean_limit += max_limits.back();
         mean_loss  += max_losses.back();
