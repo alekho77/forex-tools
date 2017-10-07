@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
+#include <boost/math/distributions/students_t.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -56,7 +57,8 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     ("timeout,t", value<string>()->required()->value_name("n{m,h,d,w}"), "How far to look into future (minutes, hours, days, weeks).");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
-    ("pip,z", value<double>()->value_name("size"), "Pip size, usually 0.0001 or 0.01");
+    ("pip,z", value<double>()->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
+    ("alpha,a", value<double>()->value_name("alpha"), "Risk level (probability: 0.1, 0.01, 0.001 ...).");
   const std::vector<options_description> list_desc = {basic_desc, generic_desc, quick_desc, additional_desc};
   try {
     store(command_line_parser(argc, argv).options(basic_desc).options(generic_desc).allow_unregistered().run(), vm);
@@ -122,6 +124,10 @@ int main(int argc, char* argv[]) {
     } else {
       throw invalid_argument("Unknown pip size for pair '" + bin_file.filename().stem().string() + "'");
     }
+    double alpha = 0.1;
+    if (vm.count("alpha")) {
+      alpha = vm["alpha"].as<double>();
+    }
     if (vm.count("quick")) {
       const string str_tm = vm["timeout"].as<string>();
       boost::regex rx_timeout("(\\d+)([mhdw])");
@@ -171,25 +177,32 @@ int main(int argc, char* argv[]) {
       if (max_limits.size() < 2 || max_losses.size() < 2 || max_limits.size() != max_losses.size()) {
         throw logic_error("No result");
       }
-      mean_limit /= max_limits.size();
-      mean_loss  /= max_losses.size();
-      double var_limit2 = 0;
-      double var_loss2  = 0;
+      const size_t N = max_limits.size();
+      mean_limit /= N;
+      mean_loss  /= N;
+      double var_limit = 0;
+      double var_loss  = 0;
       for (size_t i = 0; i < max_limits.size(); i++) {
         const double dl = max_limits[i] - mean_limit;
         const double ds = max_losses[i] - mean_loss;
-        var_limit2 += dl * dl;
-        var_loss2  += ds * ds;
+        var_limit += dl * dl;
+        var_loss  += ds * ds;
       }
-      var_limit2 /= (max_limits.size() - 1);
-      var_loss2  /= (max_losses.size() - 1);
-      cout << "Done"  << fixed << setprecision(1) << endl;
+      mean_limit /= pip;
+      mean_loss  /= pip;
+      var_limit = sqrt(var_limit / static_cast<double>(N - 1)) / pip;
+      var_loss  = sqrt(var_loss / static_cast<double>(N - 1)) / pip;
+      boost::math::students_t dist(static_cast<double>(N - 1));
+      const double T = boost::math::quantile(boost::math::complement(dist, alpha / 2));
+      const double w_limit = T * var_limit / sqrt(static_cast<double>(N));
+      const double w_loss  = T * var_loss / sqrt(static_cast<double>(N));
+      cout << "Done" << endl;
       cout << "----------------------------------" << endl;
-      cout << "Sample size (N) = " << max_limits.size() << endl << endl;
-      cout << "Limit mean      = " << mean_limit / pip << endl;
-      cout << "Limit variance  = " << sqrt(var_limit2) / pip << endl << endl;
-      cout << "Loss mean       = " << mean_loss / pip << endl;
-      cout << "Loss variance   = " << sqrt(var_loss2) / pip << endl;
+      cout << "Sample size (N) = " << N << endl << endl;
+      cout << "Limit mean      = " << fixed << setprecision(1) << mean_limit << " [+/-" << setprecision(3) << w_limit << " " << setprecision(10) << defaultfloat << (1 - alpha) << "]" << endl;
+      cout << "Limit variance  = " << fixed << setprecision(1) << var_limit << endl << endl;
+      cout << "Loss mean       = " << fixed << setprecision(1) << mean_loss << " [+/-" << setprecision(3) << w_loss << " " << setprecision(10) << defaultfloat << (1 - alpha) << "]" << endl;
+      cout << "Loss variance   = " << fixed << setprecision(1) << var_loss << endl;
     }  // if quick
   } catch (const system_error& e) {
     cout << "[ERROR] " << e.what() << endl;
