@@ -19,6 +19,11 @@
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 
+namespace {
+double g_pip = 0.0001;
+double g_alpha = 0.1;
+}
+
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   using namespace std;
   options_description basic_desc("Basic options", 200);
@@ -35,8 +40,8 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     ("timeout,t", value<string>()->required()->value_name("n{m,h,d,w}"), "How far to look into future (minutes, hours, days, weeks).");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
-    ("pip,z", value<double>()->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
-    ("alpha,a", value<double>()->value_name("alpha"), "Risk level (probability: 0.1, 0.01, 0.001 ...).");
+    ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
+    ("alpha,a", value<double>(&g_alpha)->value_name("alpha"), "Risk level (probability: 0.1, 0.01, 0.001 ...).");
   const auto list_desc = {basic_desc, generic_desc, quick_desc, additional_desc};
   try {
     store(command_line_parser(argc, argv).options(basic_desc).options(generic_desc).allow_unregistered().run(), vm);
@@ -96,15 +101,8 @@ int main(int argc, char* argv[]) {
     if (seq.candles.empty()) {
       throw logic_error("No data was found in sequence");
     }
-    double pip = 0;
-    if (vm.count("pip")) {
-      pip = vm["pip"].as<double>();
-    } else {
+    if (!vm.count("pip")) {
       throw invalid_argument("Unknown pip size for pair '" + bin_file.filename().stem().string() + "'");
-    }
-    double alpha = 0.1;
-    if (vm.count("alpha")) {
-      alpha = vm["alpha"].as<double>();
     }
     if (vm.count("quick")) {
       const string str_tm = vm["timeout"].as<string>();
@@ -166,20 +164,20 @@ int main(int argc, char* argv[]) {
         var_limit += dl * dl;
         var_loss  += ds * ds;
       }
-      mean_limit /= pip;
-      mean_loss  /= pip;
-      var_limit = sqrt(var_limit / static_cast<double>(N - 1)) / pip;
-      var_loss  = sqrt(var_loss / static_cast<double>(N - 1)) / pip;
+      mean_limit /= g_pip;
+      mean_loss  /= g_pip;
+      var_limit = sqrt(var_limit / static_cast<double>(N - 1)) / g_pip;
+      var_loss  = sqrt(var_loss / static_cast<double>(N - 1)) / g_pip;
       boost::math::students_t dist(static_cast<double>(N - 1));
-      const double T = boost::math::quantile(boost::math::complement(dist, alpha / 2));
+      const double T = boost::math::quantile(boost::math::complement(dist, g_alpha / 2));
       const double w_limit = T * var_limit / sqrt(static_cast<double>(N));
       const double w_loss  = T * var_loss / sqrt(static_cast<double>(N));
       cout << "Done" << endl;
       cout << "----------------------------------" << endl;
       cout << "Sample size (N) = " << N << endl << endl;
-      cout << "Limit mean      = " << fixed << setprecision(1) << mean_limit << " [+/-" << setprecision(3) << w_limit << " " << setprecision(10) << defaultfloat << (1 - alpha) << "]" << endl;
+      cout << "Limit mean      = " << fixed << setprecision(1) << mean_limit << " [+/-" << setprecision(3) << w_limit << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]" << endl;
       cout << "Limit variance  = " << fixed << setprecision(1) << var_limit << endl << endl;
-      cout << "Loss mean       = " << fixed << setprecision(1) << mean_loss << " [+/-" << setprecision(3) << w_loss << " " << setprecision(10) << defaultfloat << (1 - alpha) << "]" << endl;
+      cout << "Loss mean       = " << fixed << setprecision(1) << mean_loss << " [+/-" << setprecision(3) << w_loss << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]" << endl;
       cout << "Loss variance   = " << fixed << setprecision(1) << var_loss << endl;
     }  // if quick
   } catch (const system_error& e) {
