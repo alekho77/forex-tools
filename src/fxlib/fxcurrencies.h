@@ -5,7 +5,8 @@
 
 namespace fxlib {
 
-extern const std::vector<std::string> currencies;
+extern const char* currencies[];
+extern const char* pairs[];
 
 bool IsCurrency(const std::string& curr);
 bool IsPair(const std::string& pair);

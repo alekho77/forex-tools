@@ -7,7 +7,36 @@
 
 namespace fxlib {
 
-const std::vector<std::string> currencies = {"USD", "EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "NZD"};
+// Define major currencies
+#define EUR "EUR"
+#define USD "USD"
+#define GBP "GBP"
+#define CHF "CHF"
+#define JPY "JPY"
+#define CAD "CAD"
+#define AUD "AUD"
+#define NZD "NZD"
+
+// Define major pairs
+#define PAIR(A, B) (A B)
+#define EURUSD PAIR(EUR, USD)
+#define GBPUSD PAIR(GBP, USD)
+#define USDCHF PAIR(USD, CHF)
+#define USDJPY PAIR(USD, JPY)
+#define USDCAD PAIR(USD, CAD)
+#define AUDUSD PAIR(AUD, USD)
+#define NZDUSD PAIR(NZD, USD)
+
+// Define cross-pairs
+#define EURJPY PAIR(EUR, JPY)
+#define EURGBP PAIR(EUR, GBP)
+#define EURCHF PAIR(EUR, CHF)
+#define GBPJPY PAIR(GBP, JPY)
+#define GBPCHF PAIR(GBP, CHF)
+
+const char* currencies[] = {USD, EUR, GBP, CHF, JPY, CAD, AUD, NZD};
+const char* pairs[] = {EURUSD, GBPUSD, USDCHF, USDJPY, USDCAD, AUDUSD, NZDUSD, EURJPY, EURGBP, EURCHF, GBPJPY, GBPCHF};
+
 
 bool IsCurrency(const std::string & curr) {
   return std::any_of(std::cbegin(currencies), std::cend(currencies), [&curr](const auto& c) {
