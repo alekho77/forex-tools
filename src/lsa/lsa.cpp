@@ -20,6 +20,7 @@ using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 
 namespace {
+boost::filesystem::path g_srcbin;
 double g_pip = 0.0001;
 double g_alpha = 0.1;
 }
@@ -32,12 +33,14 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   options_description generic_desc("Generic analyze options", 200);
   bool quick_mode = false;
   generic_desc.add_options()
-    ("source,s",value<string>()->required()->value_name("pair-bin"),"Path to compiled (binary) quotes.")
+    ("source,s", value<string>()->required()->value_name("pair-bin")->notifier(
+      [](const string& srcname) { g_srcbin = boost::filesystem::canonical(srcname); }), "Path to compiled (binary) quotes.")
     ("quick,q", bool_switch(&quick_mode), "Start a quick (simple) analyze.");
   options_description quick_desc("Quick analyze options", 200);
   quick_desc.add_options()
     ("position,p", value<string>()->required()->value_name("{long|short}"), "What position to be analyzed.")
-    ("timeout,t", value<string>()->required()->value_name("n{m,h,d,w}"), "How far to look into future (minutes, hours, days, weeks).");
+    ("timeout,t", value<string>()->required()->value_name("n{m,h,d,w}"), "How far to look into future (minutes, hours, days, weeks).")
+    ("out,o", value<string>()->value_name("[path]")->implicit_value(""), "Optionally distributions and probabilities can be written into output files.");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
     ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
@@ -57,7 +60,7 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     } else {
       throw error("No one mode of analyze has been found!");
     }
-  } catch (const error& e) {
+  } catch (const exception& e) {
     cout << "[ERROR] Command line: " << e.what() << endl;
     cout << list_desc;
     return false;
@@ -153,21 +156,17 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    const string binfile_name = vm["source"].as<string>();
-    boost::filesystem::path bin_file(binfile_name);
-    boost::system::error_code ec;
-    bin_file = boost::filesystem::canonical(bin_file, ec);
-    if (ec) {
-      throw ios_base::failure("Source file '" + binfile_name + "' has not been found");
+    if (!vm.count("pip")) {
+      throw invalid_argument("Unknown pip size for pair '" + g_srcbin.filename().stem().string() + "'");
     }
-    cout << "Reading " << bin_file << "..." << endl;
-    ifstream fbin(bin_file.c_str(), ifstream::binary);
+    cout << "Reading " << g_srcbin << "..." << endl;
+    ifstream fbin(g_srcbin.string(), ifstream::binary);
     if (!fbin) {
-      throw ios_base::failure("Could not open source file'" + binfile_name + "'");
+      throw ios_base::failure("Could not open source file'" + g_srcbin.string() + "'");
     }
     const fxlib::fxsequence seq = fxlib::ReadSequence(fbin);
     if (!fbin) {
-      throw ios_base::failure("Could not read source file'" + binfile_name + "'");
+      throw ios_base::failure("Could not read source file'" + g_srcbin.string() + "'");
     }
     fbin.close();
     if (seq.periodicity != fxlib::fxperiodicity::minutely) {
@@ -178,9 +177,6 @@ int main(int argc, char* argv[]) {
     }
     if (seq.candles.empty()) {
       throw logic_error("No data was found in sequence");
-    }
-    if (!vm.count("pip")) {
-      throw invalid_argument("Unknown pip size for pair '" + bin_file.filename().stem().string() + "'");
     }
     if (vm.count("quick")) {
       QuickAnalyze(vm, seq);
