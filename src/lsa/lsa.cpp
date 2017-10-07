@@ -21,6 +21,7 @@ using boost::posix_time::minutes;
 
 namespace {
 boost::filesystem::path g_srcbin;
+boost::filesystem::path g_outpath;
 double g_pip = 0.0001;
 double g_alpha = 0.1;
 }
@@ -40,7 +41,8 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   quick_desc.add_options()
     ("position,p", value<string>()->required()->value_name("{long|short}"), "What position to be analyzed.")
     ("timeout,t", value<string>()->required()->value_name("n{m,h,d,w}"), "How far to look into future (minutes, hours, days, weeks).")
-    ("out,o", value<string>()->value_name("[path]")->implicit_value(""), "Optionally distributions and probabilities can be written into output files.");
+    ("out,o", value<string>()->value_name("[path]")->implicit_value("")->notifier(
+      [](const string& outname) { g_outpath = boost::filesystem::canonical(outname); }), "Optionally distributions and probabilities can be written into output files.");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
     ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
@@ -144,6 +146,42 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   cout << "Limit variance  = " << fixed << setprecision(1) << var_limit << endl << endl;
   cout << "Loss mean       = " << fixed << setprecision(1) << mean_loss << " [+/-" << setprecision(3) << w_loss << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]" << endl;
   cout << "Loss variance   = " << fixed << setprecision(1) << var_loss << endl;
+  if (vm.count("out")) {
+    cout << "----------------------------------" << endl;
+    cout << "Preparing limits distribution...";
+    sort(max_limits.begin(), max_limits.end());
+    const double lo = (mean_limit - 3 * var_limit) * g_pip;
+    const double dl = 3 * var_limit / 50 * g_pip;
+    vector<int> limit_distrib(151, 0);
+    auto iter = max_limits.cbegin();
+    for (size_t i = 0; i < limit_distrib.size(); i++) {
+      const double upper_bound = lo + i * dl;
+      while ((iter < max_limits.end()) && (*iter <= upper_bound)) {
+        ++limit_distrib[i];
+        ++iter;
+      }
+    }
+    cout << "done" << endl;
+    if (iter < max_limits.end()) {
+      cout << "[NOTE] There are " << (max_limits.end() - iter) << " extra data beyond " << fixed << setprecision(3) << (limit_distrib.size() * dl / g_pip) << " value" << endl;
+    }
+    boost::filesystem::path limit_file = g_outpath;
+    limit_file.append(g_srcbin.filename().stem().string() + "-limit-disp.dat");
+    cout << "Writing " << limit_file << "..." << endl;
+    ofstream fout(limit_file.string());
+    if (!fout) {
+      throw ios_base::failure("Could not open '" + g_outpath.string() + "'");
+    }
+    fout << "# Distribution of maximum profit limits for " << positon << " positon with " << timeout << " timeout." << endl;
+    fout << "# Sample size is " << N << endl;
+    fout << "# Sample mean is " << fixed << setprecision(1) << mean_limit << " [+/-" << setprecision(3) << w_limit << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]" << endl;
+    fout << "# Sample variance is " << fixed << setprecision(1) << var_limit << endl;
+    for (size_t i = 0; i < limit_distrib.size(); i++) {
+      const double bound = (lo + i * dl) / g_pip;
+      fout << setw(3) << setfill('0') << i << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << bound << " " << setw(8) << limit_distrib[i] << endl;
+    }
+  }
 }
 
 int main(int argc, char* argv[]) {
