@@ -1,0 +1,4 @@
+set terminal windows enhanced
+set title "Probability distribution"
+set xlabel "limit (pips)"
+plot file using 2:3 with boxes
