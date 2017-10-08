@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <tuple>
+#include <numeric>
 
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
@@ -111,8 +112,14 @@ simple_distribution BuildDistribution(std::vector<double>& limits, std::vector<d
   if (limit_iter < limits.cend()) {
     cout << "[NOTE] There are " << (limits.cend() - limit_iter) << " extra data in limits beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
   }
+  if ((limits_data_before + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<1>(b); }) + (limits.cend() - limit_iter)) != static_cast<int>(limits.size())) {
+    throw logic_error("Sum of limits distribution is not equal the total limits!");
+  }
   if (loss_iter < losses.cend()) {
     cout << "[NOTE] There are " << (losses.cend() - loss_iter) << " extra data in losses beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
+  }
+  if ((losses_data_before + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<2>(b); }) + (losses.cend() - loss_iter)) != static_cast<int>(losses.size())) {
+    throw logic_error("Sum of losses distribution is not equal the total losses!");
   }
   return distrib;
 }
@@ -239,6 +246,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<2>(distrib[i]) << endl;
     }
     fout << "EOD" << endl;
+    cout << "Done" << endl;
   }
 }
 
