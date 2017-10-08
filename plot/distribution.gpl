@@ -1,4 +1,5 @@
 set terminal windows enhanced
-set title "Probability distribution"
-set xlabel "limit (pips)"
-plot file using 2:3 with boxes
+set title 'Probability distribution'
+set xlabel '(pips)'
+plot file using 2:3 with boxes linecolor 'dark-green' fc 'web-green' fs transparent solid 0.5 title 'Profit Limits',\
+     ''   using 2:4 with boxes linecolor 'dark-red' fc 'light-red' fs transparent solid 0.5 title 'Stop-losses'
