@@ -220,7 +220,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     const auto distrib = BuildDistribution(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));
     cout << "done" << endl;
     boost::filesystem::path disp_file = g_outpath;
-    disp_file.append(g_srcbin.filename().stem().string() + "-disp-" + positon + "-" + str_tm + ".dat");
+    disp_file.append(g_srcbin.filename().stem().string() + "-disp-" + positon + "-" + str_tm + ".gpl");
     cout << "Writing " << disp_file << "..." << endl;
     ofstream fout(disp_file.string());
     if (!fout) {
@@ -230,12 +230,14 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     for (const auto& s: out_strs) {
       fout << "# " << s << endl;
     }
+    fout << "$Distrib << EOD" << endl;
     for (size_t i = 0; i < distrib.size(); i++) {
       fout << setw(3) << setfill('0') << i << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<0>(distrib[i]) / g_pip << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<1>(distrib[i]) << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<2>(distrib[i]) << endl;
     }
+    fout << "EOD" << endl;
   }
 }
 

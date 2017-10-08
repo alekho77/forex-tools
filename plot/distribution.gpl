@@ -3,5 +3,5 @@ load file
 set title 'Probability distribution'
 set xlabel '(pips)'
 plot $Distrib using 2:3 with boxes linecolor 'dark-green' fc 'web-green' fs transparent solid 0.5 title 'Profit Limits',\
-     '' using 2:4 with boxes linecolor 'dark-red' fc 'light-red' fs transparent solid 0.5 title 'Stop-losses',\
-	 '' using 2:(2*C*exp(-($2-A)**2/S**2)) with lines lc 'blue' lw 2 dt '.'
+     '' using 2:4 with boxes linecolor 'dark-red' fc 'light-red' fs transparent solid 0.5 title 'Stop-losses'
+#	 '' using 2:(2*C*exp(-($2-A)**2/S**2)) with lines lc 'blue' lw 2 dt '.'
