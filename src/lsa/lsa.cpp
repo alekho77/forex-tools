@@ -77,10 +77,9 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
 
 // tuple<double,double> => mean, variance
 using simple_distribution = std::vector<std::tuple<double, int, int>>;
-simple_distribution BuildDistribution(std::vector<double>& limits, std::vector<double>& losses, const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
+simple_distribution BuildDistribution(const std::vector<double>& limits, const std::vector<double>& losses,
+                                      const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
-  sort(limits.begin(), limits.end());
-  sort(losses.begin(), losses.end());
   const double vo = (min)(get<0>(limit) - get<1>(limit), get<0>(loss) - get<1>(loss));
   const double dv = 3 * (max)(get<1>(limit), get<1>(loss)) / 50;
   simple_distribution distrib(g_distr_size + 1, make_tuple(0.0,0,0));
@@ -112,16 +111,71 @@ simple_distribution BuildDistribution(std::vector<double>& limits, std::vector<d
   if (limit_iter < limits.cend()) {
     cout << "[NOTE] There are " << (limits.cend() - limit_iter) << " extra data in limits beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
   }
-  if ((limits_data_before + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<1>(b); }) + (limits.cend() - limit_iter)) != static_cast<int>(limits.size())) {
+  if ((limits_data_before 
+       + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<1>(b); }) 
+       + (limits.cend() - limit_iter)) != static_cast<int>(limits.size())) {
     throw logic_error("Sum of limits distribution is not equal the total limits!");
   }
   if (loss_iter < losses.cend()) {
     cout << "[NOTE] There are " << (losses.cend() - loss_iter) << " extra data in losses beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
   }
-  if ((losses_data_before + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<2>(b); }) + (losses.cend() - loss_iter)) != static_cast<int>(losses.size())) {
+  if ((losses_data_before 
+       + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<2>(b); }) 
+       + (losses.cend() - loss_iter)) != static_cast<int>(losses.size())) {
     throw logic_error("Sum of losses distribution is not equal the total losses!");
   }
   return distrib;
+}
+
+using simple_probability = std::vector<std::tuple<double, double, double>>;
+simple_probability BuildProbability(const std::vector<double>& limits, const std::vector<double>& losses,
+                                    const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
+  using namespace std;
+  const double vo = (min)(get<0>(limit) - get<1>(limit), get<0>(loss) - get<1>(loss));
+  const double dv = 3 * (max)(get<1>(limit), get<1>(loss)) / 50;
+  simple_probability probab(g_distr_size + 1);
+  int limits_count = static_cast<int>(limits.size());
+  int losses_count = static_cast<int>(losses.size());
+  auto limit_iter = limits.cbegin();
+  auto loss_iter = losses.cbegin();
+  using citer = std::vector<double>::const_iterator;
+  auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
+    while ((iter < end) && (*iter <= bound)) {
+      --counter;
+      ++iter;
+    }
+  };
+  const double bottom_bound = vo - dv;
+  count(limit_iter, limits.cend(), bottom_bound, limits_count);
+  count(loss_iter, losses.cend(), bottom_bound, losses_count);
+  if (limit_iter > limits.cbegin()) {
+    cout << "[NOTE] There are extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip);
+    cout << " value so the start limit probability is " << setprecision(6) << double(limits_count) / double(limits.size()) << endl;
+  }
+  if (loss_iter > losses.cbegin()) {
+    cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip);
+    cout << " value so the start loss probability is " << setprecision(6) << double(losses_count) / double(losses.size()) << endl;
+  }
+  for (size_t i = 0; i < probab.size(); i++) {
+    get<0>(probab[i]) = vo + i * dv;
+    count(limit_iter, limits.cend(), get<0>(probab[i]), limits_count);
+    get<1>(probab[i]) = double(limits_count) / double(limits.size());
+    count(loss_iter, losses.end(), get<0>(probab[i]), losses_count);
+    get<2>(probab[i]) = double(losses_count) / double(losses.size());
+  }
+  if (limit_iter < limits.cend()) {
+    cout << "[NOTE] There are " << (limits.cend() - limit_iter) << " extra data in limits beyond " << fixed << setprecision(3) << (probab.size() * dv / g_pip) << " value" << endl;
+  }
+  if (limits_count != static_cast<int>(limits.cend() - limit_iter)) {
+    throw logic_error("Sum of limits is not equal the total limits!");
+  }
+  if (loss_iter < losses.cend()) {
+    cout << "[NOTE] There are " << (losses.cend() - loss_iter) << " extra data in losses beyond " << fixed << setprecision(3) << (probab.size() * dv / g_pip) << " value" << endl;
+  }
+  if (losses_count != static_cast<int>(losses.cend() - loss_iter)) {
+    throw logic_error("Sum of losses is not equal the total losses!");
+  }
+  return probab;
 }
 
 // tuple<double,double,double> => mean, confidence width, variance.
@@ -224,26 +278,41 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   if (vm.count("out")) {
     cout << "----------------------------------" << endl;
     cout << "Preparing distributions..." << endl;
+    sort(max_limits.begin(), max_limits.end());
+    sort(max_losses.begin(), max_losses.end());
     const auto distrib = BuildDistribution(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));
     cout << "done" << endl;
+    cout << "Preparing probabilities..." << endl;
+    const auto probab = BuildProbability(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));
+    cout << "done" << endl;
     boost::filesystem::path disp_file = g_outpath;
-    disp_file.append(g_srcbin.filename().stem().string() + "-disp-" + positon + "-" + str_tm + ".gpl");
+    disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + str_tm + ".gpl");
     cout << "Writing " << disp_file << "..." << endl;
     ofstream fout(disp_file.string());
     if (!fout) {
       throw ios_base::failure("Could not open '" + g_outpath.string() + "'");
     }
-    fout << "# Distribution of maximum profit limits and stop-losses for " << positon << " positon with " << str_tm << " timeout." << endl;
+    fout << "# Profit limits and stop-losses for " << positon << " positon with " << str_tm << " timeout." << endl;
     for (const auto& s: out_strs) {
       fout << "# " << s << endl;
     }
     fout << "N=" << N << endl;
+    fout << "# Distribution of maximum profit limits and stop-losses." << endl;
     fout << "$Distrib << EOD" << endl;
     for (size_t i = 0; i < distrib.size(); i++) {
       fout << setw(3) << setfill('0') << i << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<0>(distrib[i]) / g_pip << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<1>(distrib[i]) << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<2>(distrib[i]) << endl;
+    }
+    fout << "EOD" << endl;
+    fout << "# Probability of maximum profit limits and stop-losses." << endl;
+    fout << "$Probab << EOD" << endl;
+    for (size_t i = 0; i < probab.size(); i++) {
+      fout << setw(3) << setfill('0') << i << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<0>(probab[i]) / g_pip << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << get<1>(probab[i]) << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << get<2>(probab[i]) << endl;
     }
     fout << "EOD" << endl;
     cout << "Done" << endl;
