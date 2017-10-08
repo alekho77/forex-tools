@@ -9,12 +9,14 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <exception>
 #include <map>
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <tuple>
 
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
@@ -24,6 +26,7 @@ boost::filesystem::path g_srcbin;
 boost::filesystem::path g_outpath;
 double g_pip = 0.0001;
 double g_alpha = 0.1;
+size_t g_distr_size;
 }
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
@@ -42,7 +45,8 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     ("position,p", value<string>()->required()->value_name("{long|short}"), "What position to be analyzed.")
     ("timeout,t", value<string>()->required()->value_name("n{m,h,d,w}"), "How far to look into future (minutes, hours, days, weeks).")
     ("out,o", value<string>()->value_name("[path]")->implicit_value("")->notifier(
-      [](const string& outname) { g_outpath = boost::filesystem::canonical(outname); }), "Optionally distributions and probabilities can be written into output files.");
+      [](const string& outname) { g_outpath = boost::filesystem::canonical(outname); }), "Optionally distributions and probabilities can be written into output files.")
+    ("distsize,d", value<size_t>(&g_distr_size)->default_value(150)->value_name("size"), "Number of intervals to build a distribution.");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
     ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
@@ -68,6 +72,73 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     return false;
   }
   return true;
+}
+
+// tuple<double,double> => mean, variance
+using simple_distribution = std::vector<std::tuple<double, int, int>>;
+simple_distribution BuildDistribution(std::vector<double>& limits, std::vector<double>& losses, const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
+  using namespace std;
+  sort(limits.begin(), limits.end());
+  sort(losses.begin(), losses.end());
+  const double vo = (min)(get<0>(limit) - get<1>(limit), get<0>(loss) - get<1>(loss));
+  const double dv = 3 * (max)(get<1>(limit), get<1>(loss)) / 50;
+  simple_distribution distrib(g_distr_size + 1, make_tuple(0.0,0,0));
+  auto limit_iter = limits.cbegin();
+  auto loss_iter = losses.cbegin();
+  using citer = std::vector<double>::const_iterator;
+  auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
+    while ((iter < end) && (*iter <= bound)) {
+      ++counter;
+      ++iter;
+    }
+  };
+  const double bottom_bound = vo - dv;
+  int limits_data_before = 0;
+  count(limit_iter, limits.cend(), bottom_bound, limits_data_before);
+  if (limit_iter > limits.cbegin()) {
+    cout << "[NOTE] There are " << limits_data_before << " extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+  }
+  int losses_data_before = 0;
+  count(loss_iter, losses.cend(), bottom_bound, losses_data_before);
+  if (loss_iter > losses.cbegin()) {
+    cout << "[NOTE] There are " << losses_data_before << " extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+  }
+  for (size_t i = 0; i < distrib.size(); i++) {
+    get<0>(distrib[i]) = vo + i * dv;
+    count(limit_iter, limits.cend(), get<0>(distrib[i]), get<1>(distrib[i]));
+    count(loss_iter, losses.end(), get<0>(distrib[i]), get<2>(distrib[i]));
+  }
+  if (limit_iter < limits.cend()) {
+    cout << "[NOTE] There are " << (limits.cend() - limit_iter) << " extra data in limits beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
+  }
+  if (loss_iter < losses.cend()) {
+    cout << "[NOTE] There are " << (losses.cend() - loss_iter) << " extra data in losses beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
+  }
+  return distrib;
+}
+
+// tuple<double,double,double> => mean, confidence width, variance.
+std::vector<std::string> PrepareOutputStrings(const size_t N, const std::tuple<double,double,double>& limit, const std::tuple<double,double,double>& loss) {
+  using namespace std;
+  vector<string> strs;
+  ostringstream ostr;
+  constexpr char first_str[] = "Sample size (N) = ";
+  ostr << first_str << N;
+  strs.push_back(ostr.str());
+  ostr = ostringstream();
+  for (auto v : {tuple_cat(make_tuple("Take Profit Limit"), limit), tuple_cat(make_tuple("Stop-Loss"), loss)}) {
+    ostr << get<0>(v) << ":";
+    strs.push_back(ostr.str());
+    ostr = ostringstream();
+    ostr << setw(strlen(first_str)) << setfill(' ') << right << "Mean = ";
+    ostr << fixed << setprecision(1) << get<1>(v) << " [+/-" << setprecision(3) << get<2>(v) << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]";
+    strs.push_back(ostr.str());
+    ostr = ostringstream();
+    ostr << setw(strlen(first_str)) << setfill(' ') << "Variance = " << fixed << setprecision(1) << get<3>(v);
+    strs.push_back(ostr.str());
+    ostr = ostringstream();
+  }
+  return strs;
 }
 
 void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
@@ -131,55 +202,39 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     var_limit += dl * dl;
     var_loss  += ds * ds;
   }
-  mean_limit /= g_pip;
-  mean_loss  /= g_pip;
-  var_limit = sqrt(var_limit / static_cast<double>(N - 1)) / g_pip;
-  var_loss  = sqrt(var_loss / static_cast<double>(N - 1)) / g_pip;
+  var_limit = sqrt(var_limit / static_cast<double>(N - 1));
+  var_loss  = sqrt(var_loss / static_cast<double>(N - 1));
   boost::math::students_t dist(static_cast<double>(N - 1));
   const double T = boost::math::quantile(boost::math::complement(dist, g_alpha / 2));
   const double w_limit = T * var_limit / sqrt(static_cast<double>(N));
   const double w_loss  = T * var_loss / sqrt(static_cast<double>(N));
   cout << "Done" << endl;
   cout << "----------------------------------" << endl;
-  cout << "Sample size (N) = " << N << endl << endl;
-  cout << "Limit mean      = " << fixed << setprecision(1) << mean_limit << " [+/-" << setprecision(3) << w_limit << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]" << endl;
-  cout << "Limit variance  = " << fixed << setprecision(1) << var_limit << endl << endl;
-  cout << "Loss mean       = " << fixed << setprecision(1) << mean_loss << " [+/-" << setprecision(3) << w_loss << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]" << endl;
-  cout << "Loss variance   = " << fixed << setprecision(1) << var_loss << endl;
+  const auto out_strs = PrepareOutputStrings(N, make_tuple(mean_limit / g_pip, w_limit / g_pip, var_limit / g_pip), make_tuple(mean_loss / g_pip, w_loss / g_pip, var_loss / g_pip));
+  for (const auto& s: out_strs) {
+    cout << s << endl;
+  }
   if (vm.count("out")) {
     cout << "----------------------------------" << endl;
-    cout << "Preparing limits distribution...";
-    sort(max_limits.begin(), max_limits.end());
-    const double lo = (mean_limit - 3 * var_limit) * g_pip;
-    const double dl = 3 * var_limit / 50 * g_pip;
-    vector<int> limit_distrib(151, 0);
-    auto iter = max_limits.cbegin();
-    for (size_t i = 0; i < limit_distrib.size(); i++) {
-      const double upper_bound = lo + i * dl;
-      while ((iter < max_limits.end()) && (*iter <= upper_bound)) {
-        ++limit_distrib[i];
-        ++iter;
-      }
-    }
+    cout << "Preparing distributions..." << endl;
+    const auto distrib = BuildDistribution(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));
     cout << "done" << endl;
-    if (iter < max_limits.end()) {
-      cout << "[NOTE] There are " << (max_limits.end() - iter) << " extra data beyond " << fixed << setprecision(3) << (limit_distrib.size() * dl / g_pip) << " value" << endl;
-    }
-    boost::filesystem::path limit_file = g_outpath;
-    limit_file.append(g_srcbin.filename().stem().string() + "-limit-disp.dat");
-    cout << "Writing " << limit_file << "..." << endl;
-    ofstream fout(limit_file.string());
+    boost::filesystem::path disp_file = g_outpath;
+    disp_file.append(g_srcbin.filename().stem().string() + "-disp-" + positon + "-" + str_tm + ".dat");
+    cout << "Writing " << disp_file << "..." << endl;
+    ofstream fout(disp_file.string());
     if (!fout) {
       throw ios_base::failure("Could not open '" + g_outpath.string() + "'");
     }
-    fout << "# Distribution of maximum profit limits for " << positon << " positon with " << timeout << " timeout." << endl;
-    fout << "# Sample size is " << N << endl;
-    fout << "# Sample mean is " << fixed << setprecision(1) << mean_limit << " [+/-" << setprecision(3) << w_limit << " " << setprecision(10) << defaultfloat << (1 - g_alpha) << "]" << endl;
-    fout << "# Sample variance is " << fixed << setprecision(1) << var_limit << endl;
-    for (size_t i = 0; i < limit_distrib.size(); i++) {
-      const double bound = (lo + i * dl) / g_pip;
+    fout << "# Distribution of maximum profit limits and stop-losses for " << positon << " positon with " << str_tm << " timeout." << endl;
+    for (const auto& s: out_strs) {
+      fout << "# " << s << endl;
+    }
+    for (size_t i = 0; i < distrib.size(); i++) {
       fout << setw(3) << setfill('0') << i << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << bound << " " << setw(8) << limit_distrib[i] << endl;
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<0>(distrib[i]) / g_pip << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<1>(distrib[i]) << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<2>(distrib[i]) << endl;
     }
   }
 }
