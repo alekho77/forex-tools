@@ -1,0 +1,7 @@
+set terminal windows enhanced
+load file
+set title 'Probabilities'
+set xlabel '(pips)'
+set ylabel '(P)'
+plot $Probab using 2:3 with histeps lc 'web-green' title 'Profit Limits',\
+     '' using 2:(1-$4) with histeps lc 'red' title 'Not Stop-losses'
