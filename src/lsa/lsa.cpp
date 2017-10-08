@@ -230,6 +230,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     for (const auto& s: out_strs) {
       fout << "# " << s << endl;
     }
+    fout << "N=" << N << endl;
     fout << "$Distrib << EOD" << endl;
     for (size_t i = 0; i < distrib.size(); i++) {
       fout << setw(3) << setfill('0') << i << " ";
