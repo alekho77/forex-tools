@@ -81,7 +81,7 @@ simple_distribution BuildDistribution(const std::vector<double>& limits, const s
                                       const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
   const double vo = (min)(get<0>(limit) - get<1>(limit), get<0>(loss) - get<1>(loss));
-  const double dv = 3 * (max)(get<1>(limit), get<1>(loss)) / 50;
+  const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
   simple_distribution distrib(g_distr_size + 1, make_tuple(0.0,0,0));
   auto limit_iter = limits.cbegin();
   auto loss_iter = losses.cbegin();
@@ -132,7 +132,7 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
                                     const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
   const double vo = (min)(get<0>(limit) - get<1>(limit), get<0>(loss) - get<1>(loss));
-  const double dv = 3 * (max)(get<1>(limit), get<1>(loss)) / 50;
+  const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
   simple_probability probab(g_distr_size + 1);
   int limits_count = static_cast<int>(limits.size());
   int losses_count = static_cast<int>(losses.size());
@@ -217,11 +217,11 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
                                       {"w", static_cast<int>(fxlib::fxperiodicity::weekly)}};
   const time_duration timeout = minutes(tm_val * fxperiods.at(what_tm[2]));
   const string positon = boost::algorithm::to_lower_copy(vm["position"].as<string>());
-  double(*profit)(const fxlib::fxcandle&, const fxlib::fxcandle&);
+  double(*profit)(const fxlib::fxcandle& /*current*/, const fxlib::fxcandle& /*open*/);
   if (positon == "long") {
-    profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return cc.low - co.high; };
+    profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return fxlib::fxmean(cc) - fxlib::fxmean(co); };
   } else if (positon == "short") {
-    profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return co.low - cc.high; };
+    profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return fxlib::fxmean(co) - fxlib::fxmean(cc); };
   } else {
     throw invalid_argument("Wrong position '" + positon + "'");
   }

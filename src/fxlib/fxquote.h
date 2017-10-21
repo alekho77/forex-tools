@@ -16,6 +16,10 @@ struct fxcandle {
   size_t volume;
 };
 
+static inline double fxmean(const fxcandle& c) {
+  return (c.open + c.close) / 2.0;
+}
+
 enum class fxperiodicity : int {
   tick = 0,
   minutely = 1,
