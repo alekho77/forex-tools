@@ -80,7 +80,7 @@ using simple_distribution = std::vector<std::tuple<double /*rate*/, int /*p limi
 simple_distribution BuildDistribution(const std::vector<double>& limits, const std::vector<double>& losses,
                                       const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
-  const double vo = (min)(get<0>(limit) - get<1>(limit), get<0>(loss) - get<1>(loss));
+  const double vo = 0;
   const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
   simple_distribution distrib(g_distr_size + 1, make_tuple(0.0,0,0));
   auto limit_iter = limits.cbegin();
@@ -96,12 +96,14 @@ simple_distribution BuildDistribution(const std::vector<double>& limits, const s
   int limits_data_before = 0;
   count(limit_iter, limits.cend(), bottom_bound, limits_data_before);
   if (limit_iter > limits.cbegin()) {
-    cout << "[NOTE] There are " << limits_data_before << " extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+    cout << "[ERROR] There are " << limits_data_before << " extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+    throw logic_error("Something has gone wrong!");
   }
   int losses_data_before = 0;
   count(loss_iter, losses.cend(), bottom_bound, losses_data_before);
   if (loss_iter > losses.cbegin()) {
-    cout << "[NOTE] There are " << losses_data_before << " extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+    cout << "[ERROR] There are " << losses_data_before << " extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+    throw logic_error("Something has gone wrong!");
   }
   for (size_t i = 0; i < distrib.size(); i++) {
     get<0>(distrib[i]) = vo + i * dv;
@@ -131,7 +133,7 @@ using simple_probability = std::vector<std::tuple<double /*rate*/, double /*P pr
 simple_probability BuildProbability(const std::vector<double>& limits, const std::vector<double>& losses,
                                     const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
-  const double vo = (min)(get<0>(limit) - get<1>(limit), get<0>(loss) - get<1>(loss));
+  const double vo = 0;
   const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
   simple_probability probab(g_distr_size + 1);
   int limits_count = static_cast<int>(limits.size());
@@ -140,7 +142,7 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
   auto loss_iter = losses.cbegin();
   using citer = std::vector<double>::const_iterator;
   auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
-    while ((iter < end) && (*iter <= bound)) {
+    while ((iter <= end) && (*iter < bound)) {
       --counter;
       ++iter;
     }
@@ -149,12 +151,12 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
   count(limit_iter, limits.cend(), bottom_bound, limits_count);
   count(loss_iter, losses.cend(), bottom_bound, losses_count);
   if (limit_iter > limits.cbegin()) {
-    cout << "[NOTE] There are extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip);
-    cout << " value so the start limit probability is " << setprecision(6) << double(limits_count) / double(limits.size()) << endl;
+    cout << "[ERROR] There are extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
+    throw logic_error("Something has gone wrong!");
   }
   if (loss_iter > losses.cbegin()) {
-    cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip);
-    cout << " value so the start loss probability is " << setprecision(6) << double(losses_count) / double(losses.size()) << endl;
+    cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
+    throw logic_error("Something has gone wrong!");
   }
   for (size_t i = 0; i < probab.size(); i++) {
     get<0>(probab[i]) = vo + i * dv;
@@ -248,6 +250,9 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     }
     mean_limit += max_limits.back();
     mean_loss  += max_losses.back();
+    if (max_limits.back() < 0 || max_losses.back() < 0) {
+      throw logic_error("Something has gone wrong!");
+    }
   }  // for seq.candles
   if (max_limits.size() < 2 || max_losses.size() < 2 || max_limits.size() != max_losses.size()) {
     throw logic_error("No result");
