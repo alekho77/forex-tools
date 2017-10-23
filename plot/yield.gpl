@@ -1,0 +1,7 @@
+set terminal windows enhanced
+load file
+set title 'Probabilities'
+set xlabel '(pips)'
+set ylabel '(Y)'
+plot $Probab using 2:($2*$3) with histeps lc 'web-green' title 'Yield',\
+     '' using 2:($2*Pprof($2)) with lines lc 'violet' lw 1.5 dt 4 title 'Yield approx'

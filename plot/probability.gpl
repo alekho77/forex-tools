@@ -5,5 +5,6 @@ set xlabel '(pips)'
 set ylabel '(P)'
 plot $Probab using 2:3 with histeps lc 'web-green' title 'Profit Limits',\
      '' using 2:4 with histeps lc 'red' title 'Stop-losses',\
-     '' using 2:(1-$4) with histeps lc 'blue' title 'Not Stop-losses',\
-     '' using 2:(exp(-(lambda1_prof*$2*$2+lambda2_prof*$2))) with lines lc 'violet' lw 1.5 dt 4 title 'Profit approx'
+     '' using 2:(Pprof($2)) with lines lc 'violet' lw 1.5 dt 4 title 'Profit approx',\
+     '' using 2:(Ploss($2)) with lines lc 'orange' lw 1.5 dt 4 title 'Losses approx'
+#     '' using 2:(1-$4) with histeps lc 'blue' title 'Not Stop-losses',\

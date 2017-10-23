@@ -133,7 +133,7 @@ simple_distribution BuildDistribution(const std::vector<double>& limits, const s
 using simple_probability = std::vector<std::tuple<double /*rate*/, double /*P profit*/, double /*P loss*/>>;
 simple_probability BuildProbability(const std::vector<double>& limits, const std::vector<double>& losses,
                                     const std::tuple<double,double>& limit, const std::tuple<double,double>& loss,
-                                    std::tuple<double,double>& lambda_prof/*, double& lambda_loss*/) {
+                                    std::tuple<double,double>& lambda_prof, std::tuple<double, double>& lambda_loss) {
   using namespace std;
   const double vo = 0;
   const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
@@ -160,9 +160,11 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
     cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
     throw logic_error("Something has gone wrong!");
   }
-  const size_t good_interval = g_distr_size / 2 + 1;
+  const size_t good_interval = g_distr_size / 3 + 1;
   mathlib::matrix<double> Ap{good_interval, 2};
   mathlib::matrix<double> Bp{good_interval};
+  mathlib::matrix<double> Al{good_interval, 2};
+  mathlib::matrix<double> Bl{good_interval};
   for (size_t i = 0; i < probab.size(); i++) {
     get<0>(probab[i]) = vo + i * dv;
     count(limit_iter, limits.cend(), get<0>(probab[i]), limits_count);
@@ -171,9 +173,10 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
     get<2>(probab[i]) = double(losses_count) / double(losses.size());
     if (i < good_interval) {
       const double t = get<0>(probab[i]);
-      Ap[i][0] = t * t;
-      Ap[i][1] = t;
+      Al[i][0] = Ap[i][0] = t * t;
+      Al[i][1] = Ap[i][1] = t;
       Bp[i][0] = - std::log(get<1>(probab[i]));
+      Bl[i][0] = - std::log(get<2>(probab[i]));
     }
   }
   if (limit_iter < limits.cend()) {
@@ -188,11 +191,18 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
   if (losses_count != static_cast<int>(losses.cend() - loss_iter)) {
     throw logic_error("Sum of losses is not equal the total losses!");
   }
-  const mathlib::matrix<double> ApT = mathlib::transpose(Ap);
-  mathlib::linear_equations<double> syseq{ApT * Ap, ApT * Bp};
-  const auto Xp = syseq.normalize().solve();
-  get<0>(lambda_prof) = Xp[0][0];
-  get<1>(lambda_prof) = Xp[1][0];
+  {
+    const mathlib::matrix<double> ApT = mathlib::transpose(Ap);
+    mathlib::linear_equations<double> syseq{ApT * Ap, ApT * Bp};
+    const auto& Xp = syseq.normalize().solve();
+    lambda_prof = {Xp[0][0], Xp[1][0]};
+  }
+  {
+    const mathlib::matrix<double> AlT = mathlib::transpose(Al);
+    mathlib::linear_equations<double> syseq{AlT * Al, AlT * Bl};
+    const auto& Xl = syseq.normalize().solve();
+    lambda_loss = {Xl[0][0], Xl[1][0]};
+  }
   return probab;
 }
 
@@ -305,7 +315,8 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
     auto lambda_prof = make_tuple(0.0, 0.0);
-    const auto probab = BuildProbability(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss), lambda_prof);
+    auto lambda_loss = make_tuple(0.0, 0.0);
+    const auto probab = BuildProbability(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss), lambda_prof, lambda_loss);
     cout << "done" << endl;
     boost::filesystem::path disp_file = g_outpath;
     disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + str_tm + ".gpl");
@@ -321,6 +332,10 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     fout << "N=" << N << endl;
     fout << "lambda1_prof=" << get<0>(lambda_prof) * g_pip * g_pip << endl;
     fout << "lambda2_prof=" << get<1>(lambda_prof) * g_pip << endl;
+    fout << "Pprof(t)=exp(-(lambda1_prof*t*t + lambda2_prof*t))" << endl;
+    fout << "lambda1_loss=" << get<0>(lambda_loss) * g_pip * g_pip << endl;
+    fout << "lambda2_loss=" << get<1>(lambda_loss) * g_pip << endl;
+    fout << "Ploss(t)=exp(-(lambda1_loss*t*t + lambda2_loss*t))" << endl;
     fout << "# Distribution of maximum profit limits and stop-losses." << endl;
     fout << "$Distrib << EOD" << endl;
     for (size_t i = 0; i < distrib.size(); i++) {
