@@ -76,7 +76,7 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
 }
 
 // tuple<double,double> => mean, variance
-using simple_distribution = std::vector<std::tuple<double, int, int>>;
+using simple_distribution = std::vector<std::tuple<double /*rate*/, int /*p limit*/, int /*p loss*/>>;
 simple_distribution BuildDistribution(const std::vector<double>& limits, const std::vector<double>& losses,
                                       const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
@@ -127,7 +127,7 @@ simple_distribution BuildDistribution(const std::vector<double>& limits, const s
   return distrib;
 }
 
-using simple_probability = std::vector<std::tuple<double, double, double>>;
+using simple_probability = std::vector<std::tuple<double /*rate*/, double /*P profit*/, double /*P loss*/>>;
 simple_probability BuildProbability(const std::vector<double>& limits, const std::vector<double>& losses,
                                     const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
@@ -284,6 +284,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
     const auto probab = BuildProbability(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));
+
     cout << "done" << endl;
     boost::filesystem::path disp_file = g_outpath;
     disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + str_tm + ".gpl");
