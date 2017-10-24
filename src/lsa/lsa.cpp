@@ -23,6 +23,8 @@
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 
+using samples_t = std::vector<std::tuple<double, time_duration>>;
+
 namespace {
 boost::filesystem::path g_srcbin;
 boost::filesystem::path g_outpath;
@@ -78,17 +80,17 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
 
 // tuple<double,double> => mean, variance
 using simple_distribution = std::vector<std::tuple<double /*rate*/, int /*p limit*/, int /*p loss*/>>;
-simple_distribution BuildDistribution(const std::vector<double>& limits, const std::vector<double>& losses,
+simple_distribution BuildDistribution(const samples_t& limits, const samples_t& losses,
                                       const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
   const double vo = 0;
   const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
-  simple_distribution distrib(g_distr_size + 1, make_tuple(0.0,0,0));
+  simple_distribution distrib(g_distr_size + 1, make_tuple(0.0, 0, 0));
   auto limit_iter = limits.cbegin();
   auto loss_iter = losses.cbegin();
-  using citer = std::vector<double>::const_iterator;
+  using citer = samples_t::const_iterator;
   auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
-    while ((iter < end) && (*iter <= bound)) {
+    while ((iter < end) && (get<0>(*iter) <= bound)) {
       ++counter;
       ++iter;
     }
@@ -131,7 +133,7 @@ simple_distribution BuildDistribution(const std::vector<double>& limits, const s
 }
 
 using simple_probability = std::vector<std::tuple<double /*rate*/, double /*P profit*/, double /*P loss*/>>;
-simple_probability BuildProbability(const std::vector<double>& limits, const std::vector<double>& losses,
+simple_probability BuildProbability(const samples_t& limits, const samples_t& losses,
                                     const std::tuple<double,double>& limit, const std::tuple<double,double>& loss,
                                     std::tuple<double,double>& lambda_prof, std::tuple<double, double>& lambda_loss) {
   using namespace std;
@@ -142,9 +144,9 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
   int losses_count = static_cast<int>(losses.size());
   auto limit_iter = limits.cbegin();
   auto loss_iter = losses.cbegin();
-  using citer = std::vector<double>::const_iterator;
+  using citer = samples_t::const_iterator;
   auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
-    while ((iter < end) && (*iter < bound)) {
+    while ((iter < end) && (get<0>(*iter) < bound)) {
       --counter;
       ++iter;
     }
@@ -254,8 +256,8 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     throw invalid_argument("Wrong position '" + positon + "'");
   }
   cout << "Analyzing near " << seq.candles.size() << " " << positon << " positions with " << timeout << " timeout..." << endl;
-  vector<double> max_limits;
-  vector<double> max_losses;
+  samples_t max_limits;
+  samples_t max_losses;
   max_limits.reserve(seq.candles.size());
   max_losses.reserve(seq.candles.size());
   size_t curr_idx = 0;
@@ -268,15 +270,21 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       cout << piter->time << " processed " << (progress * 10) << "%" << endl;
       progress_idx = (++progress * seq.candles.size()) / 10;
     }
-    max_limits.push_back(profit(*piter, *piter));
-    max_losses.push_back(-profit(*piter, *piter));
+    const double po = profit(*piter, *piter);
+    max_limits.push_back(make_tuple(po, minutes(0)));
+    max_losses.push_back(make_tuple(-po, minutes(0)));
     for (auto citer = piter + 1; citer < seq.candles.end() && citer->time <= (piter->time + timeout); ++citer) {
-      max_limits.back() = (max)(max_limits.back(), profit(*citer, *piter));
-      max_losses.back() = (max)(max_losses.back(), -profit(*citer, *piter));
+      const double p = profit(*citer, *piter);
+      if (get<0>(max_limits.back()) < p) {
+        max_limits.back() = make_tuple(p, citer->time - piter->time);
+      }
+      if (get<0>(max_losses.back()) < -p) {
+        max_losses.back() = make_tuple(-p, citer->time - piter->time);
+      }
     }
-    mean_limit += max_limits.back();
-    mean_loss  += max_losses.back();
-    if (max_limits.back() < 0 || max_losses.back() < 0) {
+    mean_limit += get<0>(max_limits.back());
+    mean_loss  += get<0>(max_losses.back());
+    if (get<0>(max_limits.back()) < 0 || get<0>(max_losses.back()) < 0) {
       throw logic_error("Something has gone wrong!");
     }
   }  // for seq.candles
@@ -289,8 +297,8 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   double var_limit = 0;
   double var_loss  = 0;
   for (size_t i = 0; i < max_limits.size(); i++) {
-    const double dl = max_limits[i] - mean_limit;
-    const double ds = max_losses[i] - mean_loss;
+    const double dl = get<0>(max_limits[i]) - mean_limit;
+    const double ds = get<0>(max_losses[i]) - mean_loss;
     var_limit += dl * dl;
     var_loss  += ds * ds;
   }
@@ -309,8 +317,9 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   if (vm.count("out")) {
     cout << "----------------------------------" << endl;
     cout << "Preparing distributions..." << endl;
-    sort(max_limits.begin(), max_limits.end());
-    sort(max_losses.begin(), max_losses.end());
+    auto sample_comp = [](const samples_t::value_type& a, const samples_t::value_type& b) { return get<0>(a) < get<0>(b); };
+    sort(max_limits.begin(), max_limits.end(), sample_comp);
+    sort(max_losses.begin(), max_losses.end(), sample_comp);
     const auto distrib = BuildDistribution(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
