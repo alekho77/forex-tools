@@ -1,0 +1,7 @@
+set terminal windows enhanced
+load file
+set title 'Time Duration Distribution'
+set xlabel '(pips)'
+set ylabel '(D)'
+set xzeroaxis
+plot $Probab using 2:5:6 with yerrorlines lc 'web-green' title 'Profit'

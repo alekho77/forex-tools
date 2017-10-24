@@ -132,35 +132,51 @@ simple_distribution BuildDistribution(const samples_t& limits, const samples_t& 
   return distrib;
 }
 
-using simple_probability = std::vector<std::tuple<double /*rate*/, double /*P profit*/, double /*P loss*/>>;
+struct duration_data {
+  double durat;  // mean time of duration, min.
+  double error;
+  size_t count;
+};
+struct probab_data {
+  double rate;
+  double prof;
+  double loss;
+  duration_data prof_d;
+  duration_data loss_d;
+};
+using simple_probability = std::vector<probab_data>;
 simple_probability BuildProbability(const samples_t& limits, const samples_t& losses,
                                     const std::tuple<double,double>& limit, const std::tuple<double,double>& loss,
                                     std::tuple<double,double>& lambda_prof, std::tuple<double, double>& lambda_loss) {
   using namespace std;
   const double vo = 0;
   const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
-  simple_probability probab(g_distr_size + 1);
+  simple_probability probab(g_distr_size + 1, probab_data());
   int limits_count = static_cast<int>(limits.size());
   int losses_count = static_cast<int>(losses.size());
   auto limit_iter = limits.cbegin();
   auto loss_iter = losses.cbegin();
   using citer = samples_t::const_iterator;
-  auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
+  auto count = [](citer& iter, const citer& end, const double bound, int& counter, vector<time_duration>& time_collector) {
     while ((iter < end) && (get<0>(*iter) < bound)) {
       --counter;
+      time_collector.push_back(get<1>(*iter));
       ++iter;
     }
   };
-  const double bottom_bound = vo - dv;
-  count(limit_iter, limits.cend(), bottom_bound, limits_count);
-  count(loss_iter, losses.cend(), bottom_bound, losses_count);
-  if (limit_iter > limits.cbegin()) {
-    cout << "[ERROR] There are extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
-    throw logic_error("Something has gone wrong!");
-  }
-  if (loss_iter > losses.cbegin()) {
-    cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
-    throw logic_error("Something has gone wrong!");
+  {
+    const double bottom_bound = vo - dv;
+    vector<time_duration> tcollect;
+    count(limit_iter, limits.cend(), bottom_bound, limits_count, tcollect);
+    count(loss_iter, losses.cend(), bottom_bound, losses_count, tcollect);
+    if (limit_iter > limits.cbegin()) {
+      cout << "[ERROR] There are extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
+      throw logic_error("Something has gone wrong!");
+    }
+    if (loss_iter > losses.cbegin()) {
+      cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
+      throw logic_error("Something has gone wrong!");
+    }
   }
   const size_t good_interval = g_distr_size / 3 + 1;
   mathlib::matrix<double> Ap{good_interval, 2};
@@ -168,17 +184,39 @@ simple_probability BuildProbability(const samples_t& limits, const samples_t& lo
   mathlib::matrix<double> Al{good_interval, 2};
   mathlib::matrix<double> Bl{good_interval};
   for (size_t i = 0; i < probab.size(); i++) {
-    get<0>(probab[i]) = vo + i * dv;
-    count(limit_iter, limits.cend(), get<0>(probab[i]), limits_count);
-    get<1>(probab[i]) = double(limits_count) / double(limits.size());
-    count(loss_iter, losses.end(), get<0>(probab[i]), losses_count);
-    get<2>(probab[i]) = double(losses_count) / double(losses.size());
+    probab[i].rate = vo + i * dv;
+    {
+      vector<time_duration> tcollect;
+      count(limit_iter, limits.cend(), probab[i].rate, limits_count, tcollect);
+      probab[i].prof = double(limits_count) / double(limits.size());
+      if (!tcollect.empty()) {
+        for (const time_duration& t: tcollect) {
+          probab[i].prof_d.durat += t.total_seconds();
+        }
+        probab[i].prof_d.durat /= tcollect.size();
+        if (tcollect.size() > 1) {
+          for (const time_duration& t : tcollect) {
+            const double d = t.total_seconds() - probab[i].prof_d.durat;
+            probab[i].prof_d.error += d * d;
+          }
+          probab[i].prof_d.error = sqrt(probab[i].prof_d.error / (tcollect.size() - 1));
+        }
+        probab[i].prof_d.durat /= 60.0;
+        probab[i].prof_d.error /= 60.0;
+        probab[i].prof_d.count = tcollect.size();
+      }
+    }
+    {
+      vector<time_duration> tcollect;
+      count(loss_iter, losses.end(), probab[i].loss, losses_count, tcollect);
+      probab[i].loss = double(losses_count) / double(losses.size());
+    }
     if (i < good_interval) {
-      const double t = get<0>(probab[i]);
+      const double t = probab[i].rate;
       Al[i][0] = Ap[i][0] = t * t;
       Al[i][1] = Ap[i][1] = t;
-      Bp[i][0] = - std::log(get<1>(probab[i]));
-      Bl[i][0] = - std::log(get<2>(probab[i]));
+      Bp[i][0] = - std::log(probab[i].prof);
+      Bl[i][0] = - std::log(probab[i].loss);
     }
   }
   if (limit_iter < limits.cend()) {
@@ -350,17 +388,20 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     for (size_t i = 0; i < distrib.size(); i++) {
       fout << setw(3) << setfill('0') << i << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<0>(distrib[i]) / g_pip << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<1>(distrib[i]) << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<2>(distrib[i]) << endl;
+      fout << setw(6) << setfill(' ') << get<1>(distrib[i]) << " ";
+      fout << setw(6) << setfill(' ') << get<2>(distrib[i]) << endl;
     }
     fout << "EOD" << endl;
     fout << "# Probability of maximum profit limits and stop-losses." << endl;
     fout << "$Probab << EOD" << endl;
     for (size_t i = 0; i < probab.size(); i++) {
       fout << setw(3) << setfill('0') << i << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << get<0>(probab[i]) / g_pip << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << get<1>(probab[i]) << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << get<2>(probab[i]) << endl;
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << probab[i].rate / g_pip << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << probab[i].prof << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << probab[i].loss << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << probab[i].prof_d.durat << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << probab[i].prof_d.error << " ";
+      fout << setw(6) << setfill(' ') << probab[i].prof_d.count << endl;
     }
     fout << "EOD" << endl;
     cout << "Done" << endl;
