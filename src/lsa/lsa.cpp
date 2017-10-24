@@ -144,7 +144,7 @@ simple_probability BuildProbability(const std::vector<double>& limits, const std
   auto loss_iter = losses.cbegin();
   using citer = std::vector<double>::const_iterator;
   auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
-    while ((iter <= end) && (*iter < bound)) {
+    while ((iter < end) && (*iter < bound)) {
       --counter;
       ++iter;
     }
