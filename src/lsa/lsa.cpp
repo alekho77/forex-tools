@@ -1,6 +1,6 @@
 #include "fxlib/fxlib.h"
 #include "fxlib/helpers/program_options.h"
-#include "math/mathlib/lsyseq.h"
+#include "math/mathlib/approx.h"
 
 #include <boost/system/error_code.hpp>
 #include <boost/filesystem.hpp>
@@ -111,7 +111,7 @@ simple_distribution BuildDistribution(const samples_t& limits, const samples_t& 
   for (size_t i = 0; i < distrib.size(); i++) {
     get<0>(distrib[i]) = vo + i * dv;
     count(limit_iter, limits.cend(), get<0>(distrib[i]), get<1>(distrib[i]));
-    count(loss_iter, losses.end(), get<0>(distrib[i]), get<2>(distrib[i]));
+    count(loss_iter, losses.cend(), get<0>(distrib[i]), get<2>(distrib[i]));
   }
   if (limit_iter < limits.cend()) {
     cout << "[NOTE] There are " << (limits.cend() - limit_iter) << " extra data in limits beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
@@ -179,10 +179,8 @@ simple_probability BuildProbability(const samples_t& limits, const samples_t& lo
     }
   }
   const size_t good_interval = g_distr_size / 3 + 1;
-  mathlib::matrix<double> Ap{good_interval, 2};
-  mathlib::matrix<double> Bp{good_interval};
-  mathlib::matrix<double> Al{good_interval, 2};
-  mathlib::matrix<double> Bl{good_interval};
+  mathlib::approx<double, 2> appx_prof;
+  mathlib::approx<double, 2> appx_loss;
   for (size_t i = 0; i < probab.size(); i++) {
     probab[i].rate = vo + i * dv;
     {
@@ -208,15 +206,13 @@ simple_probability BuildProbability(const samples_t& limits, const samples_t& lo
     }
     {
       vector<time_duration> tcollect;
-      count(loss_iter, losses.end(), probab[i].loss, losses_count, tcollect);
+      count(loss_iter, losses.cend(), probab[i].rate, losses_count, tcollect);
       probab[i].loss = double(losses_count) / double(losses.size());
     }
     if (i < good_interval) {
       const double t = probab[i].rate;
-      Al[i][0] = Ap[i][0] = t * t;
-      Al[i][1] = Ap[i][1] = t;
-      Bp[i][0] = - std::log(probab[i].prof);
-      Bl[i][0] = - std::log(probab[i].loss);
+      appx_prof(t * t, t, - std::log(probab[i].prof));
+      appx_loss(t * t, t, - std::log(probab[i].loss));
     }
   }
   if (limit_iter < limits.cend()) {
@@ -231,18 +227,8 @@ simple_probability BuildProbability(const samples_t& limits, const samples_t& lo
   if (losses_count != static_cast<int>(losses.cend() - loss_iter)) {
     throw logic_error("Sum of losses is not equal the total losses!");
   }
-  {
-    const mathlib::matrix<double> ApT = mathlib::transpose(Ap);
-    mathlib::linear_equations<double> syseq{ApT * Ap, ApT * Bp};
-    const auto& Xp = syseq.normalize().solve();
-    lambda_prof = {Xp[0][0], Xp[1][0]};
-  }
-  {
-    const mathlib::matrix<double> AlT = mathlib::transpose(Al);
-    mathlib::linear_equations<double> syseq{AlT * Al, AlT * Bl};
-    const auto& Xl = syseq.normalize().solve();
-    lambda_loss = {Xl[0][0], Xl[1][0]};
-  }
+  lambda_prof = appx_prof.approach().get_as_tuple();
+  lambda_loss = appx_loss.approach().get_as_tuple();
   return probab;
 }
 
