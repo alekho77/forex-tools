@@ -363,12 +363,12 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       fout << "# " << s << endl;
     }
     fout << "N=" << N << endl;
-    fout << "lambda1_prof=" << get<0>(lambda_prof) * g_pip * g_pip << endl;
-    fout << "lambda2_prof=" << get<1>(lambda_prof) * g_pip << endl;
-    fout << "Pprof(t)=exp(-(lambda1_prof*t*t + lambda2_prof*t))" << endl;
-    fout << "lambda1_loss=" << get<0>(lambda_loss) * g_pip * g_pip << endl;
-    fout << "lambda2_loss=" << get<1>(lambda_loss) * g_pip << endl;
-    fout << "Ploss(t)=exp(-(lambda1_loss*t*t + lambda2_loss*t))" << endl;
+    fout << "lambda1_prof=" << 1.0 / (sqrt(get<0>(lambda_prof)) * g_pip) << endl;
+    fout << "lambda2_prof=" << 1.0 / (get<1>(lambda_prof) * g_pip) << endl;
+    fout << "Pprof(t)=exp(-(t**2/lambda1_prof**2 + t/lambda2_prof))" << endl;
+    fout << "lambda1_loss=" << 1.0 / (sqrt(get<0>(lambda_loss)) * g_pip) << endl;
+    fout << "lambda2_loss=" << 1.0 / (get<1>(lambda_loss) * g_pip) << endl;
+    fout << "Ploss(t)=exp(-(t**2/lambda1_loss**2 + t/lambda2_loss))" << endl;
     fout << "# Distribution of maximum profit limits and stop-losses." << endl;
     fout << "$Distrib << EOD" << endl;
     for (size_t i = 0; i < distrib.size(); i++) {
