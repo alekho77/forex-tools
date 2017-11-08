@@ -23,7 +23,8 @@
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 
-using samples_t = std::vector<std::tuple<double, time_duration>>;
+using fxlib::fxrate_samples;
+using fxlib::fxrate_distribution;
 
 namespace {
 boost::filesystem::path g_srcbin;
@@ -79,54 +80,44 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
 }
 
 // tuple<double,double> => mean, variance
-using simple_distribution = std::vector<std::tuple<double /*rate*/, int /*p limit*/, int /*p loss*/>>;
-simple_distribution BuildDistribution(const samples_t& limits, const samples_t& losses,
+using simple_distribution = std::vector<std::tuple<double /*rate*/, size_t /*p limit*/, size_t /*p loss*/>>;
+simple_distribution BuildDistribution(fxrate_samples& limits, fxrate_samples& losses,
                                       const std::tuple<double,double>& limit, const std::tuple<double,double>& loss) {
   using namespace std;
   const double vo = 0;
   const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
   simple_distribution distrib(g_distr_size + 1, make_tuple(0.0, 0, 0));
-  auto limit_iter = limits.cbegin();
-  auto loss_iter = losses.cbegin();
-  using citer = samples_t::const_iterator;
-  auto count = [](citer& iter, const citer& end, const double bound, int& counter) {
-    while ((iter < end) && (get<0>(*iter) <= bound)) {
-      ++counter;
-      ++iter;
-    }
-  };
-  const double bottom_bound = vo - dv;
-  int limits_data_before = 0;
-  count(limit_iter, limits.cend(), bottom_bound, limits_data_before);
-  if (limit_iter > limits.cbegin()) {
-    cout << "[ERROR] There are " << limits_data_before << " extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+  fxrate_distribution lim_disrt = fxlib::BuildDistribution(limits, g_distr_size, vo, dv);
+  fxrate_distribution los_disrt = fxlib::BuildDistribution(losses, g_distr_size, vo, dv);
+
+  if (lim_disrt.front().count != 0) {
+    cout << "[ERROR] There are " << lim_disrt.front().count << " extra data in limits before " << fixed << setprecision(3) << (lim_disrt.front().rate_up / g_pip) << " value" << endl;
     throw logic_error("Something has gone wrong!");
   }
-  int losses_data_before = 0;
-  count(loss_iter, losses.cend(), bottom_bound, losses_data_before);
-  if (loss_iter > losses.cbegin()) {
-    cout << "[ERROR] There are " << losses_data_before << " extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << " value" << endl;
+  if (los_disrt.front().count != 0) {
+    cout << "[ERROR] There are " << los_disrt.front().count << " extra data in losses before " << fixed << setprecision(3) << (los_disrt.front().rate_up / g_pip) << " value" << endl;
     throw logic_error("Something has gone wrong!");
   }
   for (size_t i = 0; i < distrib.size(); i++) {
-    get<0>(distrib[i]) = vo + i * dv;
-    count(limit_iter, limits.cend(), get<0>(distrib[i]), get<1>(distrib[i]));
-    count(loss_iter, losses.cend(), get<0>(distrib[i]), get<2>(distrib[i]));
+    if (lim_disrt[i + 1].rate_up != los_disrt[i + 1].rate_up) {
+      throw logic_error("Something has gone wrong!");
+    }
+    distrib[i] = make_tuple(lim_disrt[i + 1].rate_up, lim_disrt[i + 1].count, los_disrt[i + 1].count);
   }
-  if (limit_iter < limits.cend()) {
-    cout << "[NOTE] There are " << (limits.cend() - limit_iter) << " extra data in limits beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
+  if (lim_disrt.back().count != 0) {
+    cout << "[NOTE] There are " << lim_disrt.back().count << " extra data in limits beyond " << fixed << setprecision(3) << (lim_disrt.back().rate_low / g_pip) << " value" << endl;
   }
-  if ((limits_data_before 
-       + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<1>(b); }) 
-       + (limits.cend() - limit_iter)) != static_cast<int>(limits.size())) {
+  if ((lim_disrt.front().count 
+       + accumulate(distrib.cbegin(), distrib.cend(), size_t(0), [](size_t a, const auto& b) { return a + get<1>(b); }) 
+       + lim_disrt.back().count) != limits.size()) {
     throw logic_error("Sum of limits distribution is not equal the total limits!");
   }
-  if (loss_iter < losses.cend()) {
-    cout << "[NOTE] There are " << (losses.cend() - loss_iter) << " extra data in losses beyond " << fixed << setprecision(3) << (distrib.size() * dv / g_pip) << " value" << endl;
+  if (los_disrt.back().count != 0) {
+    cout << "[NOTE] There are " << los_disrt.back().count << " extra data in losses beyond " << fixed << setprecision(3) << (los_disrt.back().rate_low / g_pip) << " value" << endl;
   }
-  if ((losses_data_before 
-       + accumulate(distrib.cbegin(), distrib.cend(), 0, [](auto a, const auto& b) { return a + get<2>(b); }) 
-       + (losses.cend() - loss_iter)) != static_cast<int>(losses.size())) {
+  if ((los_disrt.front().count
+       + accumulate(distrib.cbegin(), distrib.cend(), size_t(0), [](size_t a, const auto& b) { return a + get<2>(b); }) 
+       + los_disrt.back().count) != losses.size()) {
     throw logic_error("Sum of losses distribution is not equal the total losses!");
   }
   return distrib;
@@ -145,7 +136,7 @@ struct probab_data {
   duration_data loss_d;
 };
 using simple_probability = std::vector<probab_data>;
-simple_probability BuildProbability(const samples_t& limits, const samples_t& losses,
+simple_probability BuildProbability(const fxrate_samples& limits, const fxrate_samples& losses,
                                     const std::tuple<double,double>& limit, const std::tuple<double,double>& loss,
                                     std::tuple<double,double>& lambda_prof, std::tuple<double, double>& lambda_loss) {
   using namespace std;
@@ -156,17 +147,17 @@ simple_probability BuildProbability(const samples_t& limits, const samples_t& lo
   int losses_count = static_cast<int>(losses.size());
   auto limit_iter = limits.cbegin();
   auto loss_iter = losses.cbegin();
-  using citer = samples_t::const_iterator;
-  auto count = [](citer& iter, const citer& end, const double bound, int& counter, vector<time_duration>& time_collector) {
-    while ((iter < end) && (get<0>(*iter) < bound)) {
+  using citer = fxrate_samples::const_iterator;
+  auto count = [](citer& iter, const citer& end, const double bound, int& counter, vector<double>& time_collector) {
+    while ((iter < end) && (iter->rate < bound)) {
       --counter;
-      time_collector.push_back(get<1>(*iter));
+      time_collector.push_back(iter->period);
       ++iter;
     }
   };
   {
     const double bottom_bound = vo - dv;
-    vector<time_duration> tcollect;
+    vector<double> tcollect;
     count(limit_iter, limits.cend(), bottom_bound, limits_count, tcollect);
     count(loss_iter, losses.cend(), bottom_bound, losses_count, tcollect);
     if (limit_iter > limits.cbegin()) {
@@ -184,28 +175,26 @@ simple_probability BuildProbability(const samples_t& limits, const samples_t& lo
   for (size_t i = 0; i < probab.size(); i++) {
     probab[i].rate = vo + i * dv;
     {
-      vector<time_duration> tcollect;
+      vector<double> tcollect;
       count(limit_iter, limits.cend(), probab[i].rate, limits_count, tcollect);
       probab[i].prof = double(limits_count) / double(limits.size());
       if (!tcollect.empty()) {
-        for (const time_duration& t: tcollect) {
-          probab[i].prof_d.durat += t.total_seconds();
+        for (const double& t: tcollect) {
+          probab[i].prof_d.durat += t;
         }
         probab[i].prof_d.durat /= tcollect.size();
         if (tcollect.size() > 1) {
-          for (const time_duration& t : tcollect) {
-            const double d = t.total_seconds() - probab[i].prof_d.durat;
+          for (const double& t : tcollect) {
+            const double d = t - probab[i].prof_d.durat;
             probab[i].prof_d.error += d * d;
           }
           probab[i].prof_d.error = sqrt(probab[i].prof_d.error / (tcollect.size() - 1));
         }
-        probab[i].prof_d.durat /= 60.0;
-        probab[i].prof_d.error /= 60.0;
         probab[i].prof_d.count = tcollect.size();
       }
     }
     {
-      vector<time_duration> tcollect;
+      vector<double> tcollect;
       count(loss_iter, losses.cend(), probab[i].rate, losses_count, tcollect);
       probab[i].loss = double(losses_count) / double(losses.size());
     }
@@ -280,54 +269,44 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     throw invalid_argument("Wrong position '" + positon + "'");
   }
   cout << "Analyzing near " << seq.candles.size() << " " << positon << " positions with " << timeout << " timeout..." << endl;
-  samples_t max_limits;
-  samples_t max_losses;
+  fxrate_samples max_limits;
+  fxrate_samples max_losses;
   max_limits.reserve(seq.candles.size());
   max_losses.reserve(seq.candles.size());
   size_t curr_idx = 0;
   int progress = 1;
   size_t progress_idx = (progress * seq.candles.size()) / 10;
-  double mean_limit = 0;
-  double mean_loss  = 0;
   for (auto piter = seq.candles.begin(); piter < seq.candles.end() && piter->time <= (seq.candles.back().time - timeout); ++piter, ++curr_idx) {
     if (curr_idx == progress_idx) {
       cout << piter->time << " processed " << (progress * 10) << "%" << endl;
       progress_idx = (++progress * seq.candles.size()) / 10;
     }
     const double po = profit(*piter, *piter);
-    max_limits.push_back(make_tuple(po, minutes(0)));
-    max_losses.push_back(make_tuple(-po, minutes(0)));
+    max_limits.push_back({po, 0});
+    max_losses.push_back({-po, 0});
     for (auto citer = piter + 1; citer < seq.candles.end() && citer->time <= (piter->time + timeout); ++citer) {
       const double p = profit(*citer, *piter);
-      if (get<0>(max_limits.back()) < p) {
-        max_limits.back() = make_tuple(p, citer->time - piter->time);
+      if (max_limits.back().rate < p) {
+        max_limits.back() = {p, (citer->time - piter->time).total_seconds() / 60.0};
       }
-      if (get<0>(max_losses.back()) < -p) {
-        max_losses.back() = make_tuple(-p, citer->time - piter->time);
+      if (max_losses.back().rate < -p) {
+        max_losses.back() = {-p, (citer->time - piter->time).total_seconds() / 60.0};
       }
     }
-    mean_limit += get<0>(max_limits.back());
-    mean_loss  += get<0>(max_losses.back());
-    if (get<0>(max_limits.back()) < 0 || get<0>(max_losses.back()) < 0) {
+    if (max_limits.back().rate < 0 || max_losses.back().rate < 0) {
       throw logic_error("Something has gone wrong!");
     }
   }  // for seq.candles
   if (max_limits.size() < 2 || max_losses.size() < 2 || max_limits.size() != max_losses.size()) {
     throw logic_error("No result");
   }
-  const size_t N = max_limits.size();
-  mean_limit /= N;
-  mean_loss  /= N;
+  double mean_limit = 0;
   double var_limit = 0;
-  double var_loss  = 0;
-  for (size_t i = 0; i < max_limits.size(); i++) {
-    const double dl = get<0>(max_limits[i]) - mean_limit;
-    const double ds = get<0>(max_losses[i]) - mean_loss;
-    var_limit += dl * dl;
-    var_loss  += ds * ds;
-  }
-  var_limit = sqrt(var_limit / static_cast<double>(N - 1));
-  var_loss  = sqrt(var_loss / static_cast<double>(N - 1));
+  fxlib::RateStats(max_limits, mean_limit, var_limit);
+  double mean_loss = 0;
+  double var_loss = 0;
+  fxlib::RateStats(max_losses, mean_loss, var_loss);
+  const size_t N = max_limits.size();
   boost::math::students_t dist(static_cast<double>(N - 1));
   const double T = boost::math::quantile(boost::math::complement(dist, g_alpha / 2));
   const double w_limit = T * var_limit / sqrt(static_cast<double>(N));
@@ -341,7 +320,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   if (vm.count("out")) {
     cout << "----------------------------------" << endl;
     cout << "Preparing distributions..." << endl;
-    auto sample_comp = [](const samples_t::value_type& a, const samples_t::value_type& b) { return get<0>(a) < get<0>(b); };
+    auto sample_comp = [](const fxrate_samples::value_type& a, const fxrate_samples::value_type& b) { return a.rate < b.rate; };
     sort(max_limits.begin(), max_limits.end(), sample_comp);
     sort(max_losses.begin(), max_losses.end(), sample_comp);
     const auto distrib = BuildDistribution(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));

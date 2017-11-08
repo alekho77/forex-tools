@@ -20,6 +20,6 @@ struct fxdensity_range {
 using fxrate_distribution = std::vector<fxdensity_range>;
 
 void RateStats(const fxrate_samples& samples, double& mean, double& variance);
-fxrate_distribution BuildDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
+fxrate_distribution BuildDistribution(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
 
 }  // namespace fxlib

@@ -27,7 +27,7 @@ fxrate_distribution BuildDistribution(fxrate_samples& samples, size_t distr_size
   using namespace std;
   using citer = fxrate_samples::const_iterator;
   auto count = [](citer& iter, const citer& end, fxdensity_range& density) {
-    while ((iter < end) && (iter->rate < density.rate_up)) {
+    while ((iter < end) && (iter->rate <= density.rate_up)) {
       ++density.count;
       ++iter;
     }
@@ -39,11 +39,11 @@ fxrate_distribution BuildDistribution(fxrate_samples& samples, size_t distr_size
   distrib.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
   citer iter = samples.cbegin();
   
-  distrib.push_back({-numeric_limits<double>::infinity(), rate_from, 0});
+  distrib.push_back({-numeric_limits<double>::infinity(), rate_from - rate_step, 0});
   count(iter, samples.cend(), distrib.back());  // checking data before rate_from
 
   for (size_t i = 0; i <= distr_size; i++) {
-    distrib.push_back({rate_from + i * rate_step, rate_from + (i + 1) * rate_step, 0});
+    distrib.push_back({rate_from + (i - 1) * rate_step, rate_from + i * rate_step, 0});
     count(iter, samples.cend(), distrib.back());
   }
 
