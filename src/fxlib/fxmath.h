@@ -11,15 +11,20 @@ struct fxrate_sample {
 
 using fxrate_samples = std::vector<fxrate_sample>;
 
-struct fxdensity_range {
-  double rate_low;  // Lower bound of rate range
-  double rate_up;   // Upper bound of rate range
-  size_t count;     // Number of samples that are match the rate range
+struct fxdensity_sample {
+  double bound;  // Bound of rate
+  size_t count;  // Number of samples that are match the rate bound
 };
 
-using fxrate_distribution = std::vector<fxdensity_range>;
+using fxrate_distribution = std::vector<fxdensity_sample>;
 
+/// Calculate the mean and the variance values for sequence of samples.
 void RateStats(const fxrate_samples& samples, double& mean, double& variance);
-fxrate_distribution BuildDistribution(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
+
+/// Build probability distribution for sequence of rate samples.
+/**
+  The sequence of rate samples will be sorted.
+*/
+fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
 
 }  // namespace fxlib

@@ -23,11 +23,11 @@ void RateStats(const fxrate_samples& samples, double& mean, double& variance) {
   variance = std::sqrt(variance / (samples.size() - 1));
 }
 
-fxrate_distribution BuildDistribution(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
+fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
   using namespace std;
   using citer = fxrate_samples::const_iterator;
-  auto count = [](citer& iter, const citer& end, fxdensity_range& density) {
-    while ((iter < end) && (iter->rate <= density.rate_up)) {
+  auto count = [](citer& iter, const citer& end, fxdensity_sample& density) {
+    while ((iter < end) && (iter->rate <= density.bound)) {
       ++density.count;
       ++iter;
     }
@@ -39,15 +39,15 @@ fxrate_distribution BuildDistribution(fxrate_samples& samples, size_t distr_size
   distrib.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
   citer iter = samples.cbegin();
   
-  distrib.push_back({-numeric_limits<double>::infinity(), rate_from - rate_step, 0});
+  distrib.push_back({rate_from - rate_step, 0});
   count(iter, samples.cend(), distrib.back());  // checking data before rate_from
 
   for (size_t i = 0; i <= distr_size; i++) {
-    distrib.push_back({rate_from + (i - 1) * rate_step, rate_from + i * rate_step, 0});
+    distrib.push_back({rate_from + i * rate_step, 0});
     count(iter, samples.cend(), distrib.back());
   }
 
-  distrib.push_back({rate_from + (distr_size + 1) * rate_step, numeric_limits<double>::infinity(), static_cast<size_t>(samples.cend() - iter)});  // remaining data beyond the interval
+  distrib.push_back({rate_from + (distr_size + 1) * rate_step, static_cast<size_t>(samples.cend() - iter)});  // remaining data beyond the interval
 
   return distrib;
 }

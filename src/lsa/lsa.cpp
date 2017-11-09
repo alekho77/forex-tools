@@ -87,25 +87,25 @@ simple_distribution BuildDistribution(fxrate_samples& limits, fxrate_samples& lo
   const double vo = 0;
   const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
   simple_distribution distrib(g_distr_size + 1, make_tuple(0.0, 0, 0));
-  fxrate_distribution lim_disrt = fxlib::BuildDistribution(limits, g_distr_size, vo, dv);
-  fxrate_distribution los_disrt = fxlib::BuildDistribution(losses, g_distr_size, vo, dv);
+  fxrate_distribution lim_disrt = fxlib::RateDistribution(limits, g_distr_size, vo, dv);
+  fxrate_distribution los_disrt = fxlib::RateDistribution(losses, g_distr_size, vo, dv);
 
   if (lim_disrt.front().count != 0) {
-    cout << "[ERROR] There are " << lim_disrt.front().count << " extra data in limits before " << fixed << setprecision(3) << (lim_disrt.front().rate_up / g_pip) << " value" << endl;
+    cout << "[ERROR] There are " << lim_disrt.front().count << " extra data in limits before " << fixed << setprecision(3) << (lim_disrt.front().bound / g_pip) << " value" << endl;
     throw logic_error("Something has gone wrong!");
   }
   if (los_disrt.front().count != 0) {
-    cout << "[ERROR] There are " << los_disrt.front().count << " extra data in losses before " << fixed << setprecision(3) << (los_disrt.front().rate_up / g_pip) << " value" << endl;
+    cout << "[ERROR] There are " << los_disrt.front().count << " extra data in losses before " << fixed << setprecision(3) << (los_disrt.front().bound / g_pip) << " value" << endl;
     throw logic_error("Something has gone wrong!");
   }
   for (size_t i = 0; i < distrib.size(); i++) {
-    if (lim_disrt[i + 1].rate_up != los_disrt[i + 1].rate_up) {
+    if (lim_disrt[i + 1].bound != los_disrt[i + 1].bound) {
       throw logic_error("Something has gone wrong!");
     }
-    distrib[i] = make_tuple(lim_disrt[i + 1].rate_up, lim_disrt[i + 1].count, los_disrt[i + 1].count);
+    distrib[i] = make_tuple(lim_disrt[i + 1].bound, lim_disrt[i + 1].count, los_disrt[i + 1].count);
   }
   if (lim_disrt.back().count != 0) {
-    cout << "[NOTE] There are " << lim_disrt.back().count << " extra data in limits beyond " << fixed << setprecision(3) << (lim_disrt.back().rate_low / g_pip) << " value" << endl;
+    cout << "[NOTE] There are " << lim_disrt.back().count << " extra data in limits beyond " << fixed << setprecision(3) << (lim_disrt.back().bound / g_pip) << " value" << endl;
   }
   if ((lim_disrt.front().count 
        + accumulate(distrib.cbegin(), distrib.cend(), size_t(0), [](size_t a, const auto& b) { return a + get<1>(b); }) 
@@ -113,7 +113,7 @@ simple_distribution BuildDistribution(fxrate_samples& limits, fxrate_samples& lo
     throw logic_error("Sum of limits distribution is not equal the total limits!");
   }
   if (los_disrt.back().count != 0) {
-    cout << "[NOTE] There are " << los_disrt.back().count << " extra data in losses beyond " << fixed << setprecision(3) << (los_disrt.back().rate_low / g_pip) << " value" << endl;
+    cout << "[NOTE] There are " << los_disrt.back().count << " extra data in losses beyond " << fixed << setprecision(3) << (los_disrt.back().bound / g_pip) << " value" << endl;
   }
   if ((los_disrt.front().count
        + accumulate(distrib.cbegin(), distrib.cend(), size_t(0), [](size_t a, const auto& b) { return a + get<2>(b); }) 
@@ -320,9 +320,6 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   if (vm.count("out")) {
     cout << "----------------------------------" << endl;
     cout << "Preparing distributions..." << endl;
-    auto sample_comp = [](const fxrate_samples::value_type& a, const fxrate_samples::value_type& b) { return a.rate < b.rate; };
-    sort(max_limits.begin(), max_limits.end(), sample_comp);
-    sort(max_losses.begin(), max_losses.end(), sample_comp);
     const auto distrib = BuildDistribution(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss));
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
