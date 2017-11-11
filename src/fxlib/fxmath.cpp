@@ -1,4 +1,5 @@
 #include "fxmath.h"
+#include "math/mathlib/approx.h"
 
 #include <cmath>
 #include <algorithm>
@@ -75,6 +76,17 @@ fxrate_probability RateProbability(fxrate_samples& samples, size_t distr_size, c
   probab.push_back({rate_from + (distr_size + 1) * rate_step, rem_count, static_cast<double>(rem_count) / static_cast<double>(samples.size())});
 
   return probab;
+}
+
+fxprobab_coefs ApproxRateProbability(const fxrate_probability& probab) {
+  const size_t good_interval = (probab.size() - 3) / 3 + 1;
+  mathlib::approx<double, 2> appx;
+  for (size_t i = 0; i < good_interval; i++) {
+    const double t = probab[i + 1].bound;
+    appx(t * t, t, - std::log(probab[i + 1].prob));
+  }
+  auto res = appx.approach().get_as_tuple();
+  return {std::get<0>(res), std::get<1>(res)};
 }
 
 }  // namespace fxlib

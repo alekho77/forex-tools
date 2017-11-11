@@ -26,6 +26,12 @@ struct fxprobab_sample : fxdensity_sample {
 
 using fxrate_probability = std::vector<fxprobab_sample>;
 
+/// Approximation coefficients for rate probability.
+struct fxprobab_coefs {
+  double lambda1;
+  double lambda2;
+};
+
 /// Calculate the mean and the variance values for sequence of samples.
 void RateStats(const fxrate_samples& samples, double& mean, double& variance);
 
@@ -37,5 +43,7 @@ fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size,
 
 /// Build probability of samples rate.
 fxrate_probability RateProbability(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
+
+fxprobab_coefs ApproxRateProbability(const fxrate_probability& probab);
 
 }  // namespace fxlib

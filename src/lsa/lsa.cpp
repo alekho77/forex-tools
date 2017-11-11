@@ -113,7 +113,7 @@ struct probab_data {
 using simple_probability = std::vector<probab_data>;
 simple_probability BuildProbability(fxrate_samples& limits, fxrate_samples& losses,
                                     const double from, const double step,
-                                    std::tuple<double,double>& lambda_prof, std::tuple<double, double>& lambda_loss) {
+                                    fxlib::fxprobab_coefs& lambda_prof, fxlib::fxprobab_coefs& lambda_loss) {
   using namespace std;
   simple_probability probab(g_distr_size + 1, probab_data());
   
@@ -150,9 +150,6 @@ simple_probability BuildProbability(fxrate_samples& limits, fxrate_samples& loss
     count(limit_iter, limits.cend(), bottom_bound, tcollect);
     count(loss_iter, losses.cend(), bottom_bound, tcollect);
   }
-  const size_t good_interval = g_distr_size / 3 + 1;
-  mathlib::approx<double, 2> appx_prof;
-  mathlib::approx<double, 2> appx_loss;
   for (size_t i = 0; i < probab.size(); i++) {
     probab[i].rate = lim_probab[i + 1].bound;
     {
@@ -179,14 +176,9 @@ simple_probability BuildProbability(fxrate_samples& limits, fxrate_samples& loss
       count(loss_iter, losses.cend(), probab[i].rate, tcollect);
       probab[i].loss = los_probab[i + 1].prob;
     }
-    if (i < good_interval) {
-      const double t = probab[i].rate;
-      appx_prof(t * t, t, - std::log(probab[i].prof));
-      appx_loss(t * t, t, - std::log(probab[i].loss));
-    }
   }
-  lambda_prof = appx_prof.approach().get_as_tuple();
-  lambda_loss = appx_loss.approach().get_as_tuple();
+  lambda_prof = fxlib::ApproxRateProbability(lim_probab);
+  lambda_loss = fxlib::ApproxRateProbability(los_probab);
   return probab;
 }
 
@@ -298,8 +290,8 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     }
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
-    auto lambda_prof = make_tuple(0.0, 0.0);
-    auto lambda_loss = make_tuple(0.0, 0.0);
+    fxlib::fxprobab_coefs lambda_prof = {0};
+    fxlib::fxprobab_coefs lambda_loss = {0};
     const auto probab = BuildProbability(max_limits, max_losses, vo, dv, lambda_prof, lambda_loss);
     cout << "done" << endl;
     boost::filesystem::path disp_file = g_outpath;
@@ -314,11 +306,11 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       fout << "# " << s << endl;
     }
     fout << "N=" << N << endl;
-    fout << "lambda1_prof=" << get<0>(lambda_prof) * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(get<0>(lambda_prof))) * g_pip) << endl;
-    fout << "lambda2_prof=" << get<1>(lambda_prof) * g_pip << "  # " << 1.0 / (get<1>(lambda_prof) * g_pip) << endl;
+    fout << "lambda1_prof=" << lambda_prof.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lambda_prof.lambda1)) * g_pip) << endl;
+    fout << "lambda2_prof=" << lambda_prof.lambda2 * g_pip << "  # " << 1.0 / (lambda_prof.lambda2 * g_pip) << endl;
     fout << "Pprof(t)=exp(-(lambda1_prof*t**2 + lambda2_prof*t))" << endl;
-    fout << "lambda1_loss=" << get<0>(lambda_loss) * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(get<0>(lambda_loss))) * g_pip) << endl;
-    fout << "lambda2_loss=" << get<1>(lambda_loss) * g_pip << "  # " << 1.0 / (get<1>(lambda_loss) * g_pip) << endl;
+    fout << "lambda1_loss=" << lambda_loss.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lambda_loss.lambda1)) * g_pip) << endl;
+    fout << "lambda2_loss=" << lambda_loss.lambda2 * g_pip << "  # " << 1.0 / (lambda_loss.lambda2 * g_pip) << endl;
     fout << "Ploss(t)=exp(-(lambda1_loss*t**2 + lambda2_loss*t))" << endl;
     fout << "# Distribution of maximum profit limits and stop-losses." << endl;
     fout << "$Distrib << EOD" << endl;
