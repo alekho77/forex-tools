@@ -111,48 +111,54 @@ struct probab_data {
   duration_data loss_d;
 };
 using simple_probability = std::vector<probab_data>;
-simple_probability BuildProbability(const fxrate_samples& limits, const fxrate_samples& losses,
-                                    const std::tuple<double,double>& limit, const std::tuple<double,double>& loss,
+simple_probability BuildProbability(fxrate_samples& limits, fxrate_samples& losses,
+                                    const double from, const double step,
                                     std::tuple<double,double>& lambda_prof, std::tuple<double, double>& lambda_loss) {
   using namespace std;
-  const double vo = 0;
-  const double dv = 6 * (max)(get<1>(limit), get<1>(loss)) / g_distr_size;
   simple_probability probab(g_distr_size + 1, probab_data());
-  int limits_count = static_cast<int>(limits.size());
-  int losses_count = static_cast<int>(losses.size());
+  
+  auto lim_probab = fxlib::RateProbability(limits, g_distr_size, from, step);
+  auto los_probab = fxlib::RateProbability(losses, g_distr_size, from, step);
+
+  if (lim_probab.front().count != limits.size()) {
+    cout << "[ERROR] There are extra data in limits before " << fixed << setprecision(3) << (lim_probab.front().bound / g_pip) << endl;
+    throw logic_error("Something has gone wrong!");
+  }
+  if (los_probab.front().count != losses.size()) {
+    cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (los_probab.front().bound / g_pip) << endl;
+    throw logic_error("Something has gone wrong!");
+  }
+  if (lim_probab.back().count > 0) {
+    cout << "[NOTE] There are " << lim_probab.back().count << " extra data in limits beyond " << fixed << setprecision(3) << (lim_probab.back().bound / g_pip) << " value" << endl;
+  }
+  if (los_probab.back().count > 0) {
+    cout << "[NOTE] There are " << los_probab.back().count << " extra data in losses beyond " << fixed << setprecision(3) << (los_probab.back().bound / g_pip) << " value" << endl;
+  }
+
   auto limit_iter = limits.cbegin();
   auto loss_iter = losses.cbegin();
   using citer = fxrate_samples::const_iterator;
-  auto count = [](citer& iter, const citer& end, const double bound, int& counter, vector<double>& time_collector) {
+  auto count = [](citer& iter, const citer& end, const double bound, vector<double>& time_collector) {
     while ((iter < end) && (iter->rate < bound)) {
-      --counter;
       time_collector.push_back(iter->period);
       ++iter;
     }
   };
   {
-    const double bottom_bound = vo - dv;
+    const double bottom_bound = from - step;
     vector<double> tcollect;
-    count(limit_iter, limits.cend(), bottom_bound, limits_count, tcollect);
-    count(loss_iter, losses.cend(), bottom_bound, losses_count, tcollect);
-    if (limit_iter > limits.cbegin()) {
-      cout << "[ERROR] There are extra data in limits before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
-      throw logic_error("Something has gone wrong!");
-    }
-    if (loss_iter > losses.cbegin()) {
-      cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (bottom_bound / g_pip) << endl;
-      throw logic_error("Something has gone wrong!");
-    }
+    count(limit_iter, limits.cend(), bottom_bound, tcollect);
+    count(loss_iter, losses.cend(), bottom_bound, tcollect);
   }
   const size_t good_interval = g_distr_size / 3 + 1;
   mathlib::approx<double, 2> appx_prof;
   mathlib::approx<double, 2> appx_loss;
   for (size_t i = 0; i < probab.size(); i++) {
-    probab[i].rate = vo + i * dv;
+    probab[i].rate = lim_probab[i + 1].bound;
     {
       vector<double> tcollect;
-      count(limit_iter, limits.cend(), probab[i].rate, limits_count, tcollect);
-      probab[i].prof = double(limits_count) / double(limits.size());
+      count(limit_iter, limits.cend(), probab[i].rate, tcollect);
+      probab[i].prof = lim_probab[i + 1].prob;
       if (!tcollect.empty()) {
         for (const double& t: tcollect) {
           probab[i].prof_d.durat += t;
@@ -170,26 +176,14 @@ simple_probability BuildProbability(const fxrate_samples& limits, const fxrate_s
     }
     {
       vector<double> tcollect;
-      count(loss_iter, losses.cend(), probab[i].rate, losses_count, tcollect);
-      probab[i].loss = double(losses_count) / double(losses.size());
+      count(loss_iter, losses.cend(), probab[i].rate, tcollect);
+      probab[i].loss = los_probab[i + 1].prob;
     }
     if (i < good_interval) {
       const double t = probab[i].rate;
       appx_prof(t * t, t, - std::log(probab[i].prof));
       appx_loss(t * t, t, - std::log(probab[i].loss));
     }
-  }
-  if (limit_iter < limits.cend()) {
-    cout << "[NOTE] There are " << (limits.cend() - limit_iter) << " extra data in limits beyond " << fixed << setprecision(3) << (probab.size() * dv / g_pip) << " value" << endl;
-  }
-  if (limits_count != static_cast<int>(limits.cend() - limit_iter)) {
-    throw logic_error("Sum of limits is not equal the total limits!");
-  }
-  if (loss_iter < losses.cend()) {
-    cout << "[NOTE] There are " << (losses.cend() - loss_iter) << " extra data in losses beyond " << fixed << setprecision(3) << (probab.size() * dv / g_pip) << " value" << endl;
-  }
-  if (losses_count != static_cast<int>(losses.cend() - loss_iter)) {
-    throw logic_error("Sum of losses is not equal the total losses!");
   }
   lambda_prof = appx_prof.approach().get_as_tuple();
   lambda_loss = appx_loss.approach().get_as_tuple();
@@ -306,7 +300,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     cout << "Preparing probabilities..." << endl;
     auto lambda_prof = make_tuple(0.0, 0.0);
     auto lambda_loss = make_tuple(0.0, 0.0);
-    const auto probab = BuildProbability(max_limits, max_losses, make_tuple(mean_limit, var_limit), make_tuple(mean_loss, var_loss), lambda_prof, lambda_loss);
+    const auto probab = BuildProbability(max_limits, max_losses, vo, dv, lambda_prof, lambda_loss);
     cout << "done" << endl;
     boost::filesystem::path disp_file = g_outpath;
     disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + str_tm + ".gpl");
