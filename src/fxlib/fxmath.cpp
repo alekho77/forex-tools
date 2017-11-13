@@ -75,7 +75,7 @@ fxmargin_probability MarginProbability(const fxmargin_samples& samples, size_t d
 }
 
 fxprobab_coefs ApproxMarginProbability(const fxmargin_probability& probab) {
-  const size_t good_interval = (probab.size() - 3) / 3 + 1;
+  const size_t good_interval = 2 * (probab.size() - 3) / 3 + 1;
   mathlib::approx<double, 2> appx;
   for (size_t i = 0; i < good_interval; i++) {
     const double t = probab[i + 1].bound;
@@ -128,7 +128,7 @@ fxdurat_distribution MarginDurationDistribution(const fxmargin_samples& samples,
 
 fxdurat_coefs ApproxDurationDistribution(const fxdurat_distribution& distrib) {
   using namespace std;
-  const size_t good_interval = (distrib.size() - 3) / 2 + 1;
+  const size_t good_interval = 2 * (distrib.size() - 3) / 3 + 1;
   const size_t magic_number = (distrib.size() - 3) / 10;
   mathlib::fapprox<double(double,double)> appx;
   for (size_t i = 0; i < good_interval; i++) {
