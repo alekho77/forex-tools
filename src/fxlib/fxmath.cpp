@@ -21,7 +21,7 @@ void RateStats(const fxrate_samples& samples, double& mean, double& variance) {
 
 fxrate_distribution RateDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
   using citer = fxrate_samples::const_iterator;
-  auto counter = [end = samples.end()](citer& iter, fxdensity_sample& density) {
+  auto worker = [end = samples.end()](citer& iter, fxdensity_sample& density) {
     while ((iter < end) && (iter->margin <= density.bound)) {
       ++density.count;
       ++iter;
@@ -33,11 +33,11 @@ fxrate_distribution RateDistribution(const fxrate_samples& samples, size_t distr
   citer iter = samples.cbegin();
   
   distrib.push_back({rate_from - rate_step, 0});
-  counter(iter, distrib.back());  // checking data before rate_from
+  worker(iter, distrib.back());  // checking data before rate_from
 
   for (size_t i = 0; i <= distr_size; i++) {
     distrib.push_back({rate_from + i * rate_step, 0});
-    counter(iter, distrib.back());
+    worker(iter, distrib.back());
   }
 
   distrib.push_back({rate_from + (distr_size + 1) * rate_step, static_cast<size_t>(samples.cend() - iter)});  // remaining data beyond the interval
@@ -47,7 +47,7 @@ fxrate_distribution RateDistribution(const fxrate_samples& samples, size_t distr
 
 fxrate_probability RateProbability(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
   using citer = fxrate_samples::const_iterator;
-  auto counter = [end = samples.end(), N = samples.size()](citer& iter, fxprobab_sample& sample) {
+  auto worker = [end = samples.end(), N = samples.size()](citer& iter, fxprobab_sample& sample) {
     while ((iter < end) && (iter->margin < sample.bound)) {
       --sample.count;
       ++iter;
@@ -60,11 +60,11 @@ fxrate_probability RateProbability(const fxrate_samples& samples, size_t distr_s
   citer iter = samples.cbegin();
 
   probab.push_back({rate_from - rate_step, samples.size()});
-  counter(iter, probab.back());  // checking data before rate_from
+  worker(iter, probab.back());  // checking data before rate_from
 
   for (size_t i = 0; i <= distr_size; i++) {
     probab.push_back({rate_from + i * rate_step, probab.back().count});
-    counter(iter, probab.back());
+    worker(iter, probab.back());
   }
 
   const size_t rem_count = samples.cend() - iter;  // remaining data beyond the interval
@@ -84,17 +84,45 @@ fxprobab_coefs ApproxRateProbability(const fxrate_probability& probab) {
   return {std::get<0>(res), std::get<1>(res)};
 }
 
-//fxdurat_distribution DurationDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
-//  using citer = fxrate_samples::const_iterator;
-//  auto counter = [end = samples.end()](citer& iter, const double bound, std::vector<double>& time_collector) {
-//    while ((iter < end) && (iter->margin < bound)) {
-//      time_collector.push_back(iter->period);
-//      ++iter;
-//    }
-//  };
-//
-//  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.margin < rhs.margin; });
-//
-//}
+fxdurat_distribution DurationDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
+  using citer = fxrate_samples::const_iterator;
+  auto worker = [end = samples.end()](citer& iter, fxduration_sample& sample) {
+    std::vector<double> time_collector;
+    while ((iter < end) && (iter->margin < sample.bound)) {
+      time_collector.push_back(iter->period);
+      ++iter;
+    }
+    if (!time_collector.empty()) {
+      for (const double& t : time_collector) {
+        sample.durat += t;
+      }
+      sample.durat /= time_collector.size();
+      if (time_collector.size() > 1) {
+        for (const double& t : time_collector) {
+          const double d = t - sample.durat;
+          sample.error += d * d;
+        }
+        sample.error = sqrt(sample.error / (time_collector.size() - 1));
+      }
+      sample.count = time_collector.size();
+    }
+  };
+
+  fxdurat_distribution distrib;
+  distrib.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
+  citer iter = samples.cbegin();
+
+  distrib.push_back(fxduration_sample{rate_from - rate_step});
+  worker(iter, distrib.back());  // checking data before rate_from
+
+  for (size_t i = 0; i <= distr_size; i++) {
+    distrib.push_back(fxduration_sample{rate_from + i * rate_step});
+    worker(iter, distrib.back());
+  }
+
+  distrib.push_back(fxduration_sample{rate_from + (distr_size + 1) * rate_step, static_cast<size_t>(samples.cend() - iter), 0, 0});  // remaining data beyond the interval
+
+  return distrib;
+}
 
 }  // namespace fxlib

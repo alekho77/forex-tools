@@ -28,6 +28,8 @@ struct fxprobab_sample : fxdensity_sample {
 using fxrate_probability = std::vector<fxprobab_sample>;
 
 struct fxduration_sample : fxdensity_sample {
+  fxduration_sample(double b, size_t c, double d, double e) : fxdensity_sample({b, c}), durat(d), error(e) {}
+  explicit fxduration_sample(double b) : fxduration_sample(b, 0, 0, 0) {}
   double durat;  // Mean time of waiting for the margin
   double error;  // Variance of the mean value
 };

@@ -25,6 +25,8 @@ using boost::posix_time::minutes;
 
 using fxlib::fxrate_samples;
 using fxlib::fxrate_distribution;
+using fxlib::fxrate_probability;
+using fxlib::fxprobab_coefs;
 
 namespace {
 boost::filesystem::path g_srcbin;
@@ -79,7 +81,7 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   return true;
 }
 
-fxrate_distribution BuildDistribution(fxrate_samples& samples, const double from, const double step, const std::string& name) {
+fxrate_distribution BuildDistribution(const fxrate_samples& samples, const double from, const double step, const std::string& name) {
   using namespace std;
   fxrate_distribution distrib = fxlib::RateDistribution(samples, g_distr_size, from, step);
   if (distrib.size() != g_distr_size + 3) {
@@ -98,87 +100,19 @@ fxrate_distribution BuildDistribution(fxrate_samples& samples, const double from
   return distrib;
 }
 
-struct duration_data {
-  double durat;  // mean time of duration, min.
-  double error;
-  size_t count;
-};
-struct probab_data {
-  double rate;
-  double prof;
-  double loss;
-  duration_data prof_d;
-  duration_data loss_d;
-};
-using simple_probability = std::vector<probab_data>;
-simple_probability BuildProbability(fxrate_samples& limits, fxrate_samples& losses,
-                                    const double from, const double step,
-                                    fxlib::fxprobab_coefs& lambda_prof, fxlib::fxprobab_coefs& lambda_loss) {
+fxrate_probability BuildProbability(const fxrate_samples& samples, const double from, const double step, const std::string& name) {
   using namespace std;
-  simple_probability probab(g_distr_size + 1, probab_data());
-  
-  auto lim_probab = fxlib::RateProbability(limits, g_distr_size, from, step);
-  auto los_probab = fxlib::RateProbability(losses, g_distr_size, from, step);
-
-  if (lim_probab.front().count != limits.size()) {
-    cout << "[ERROR] There are extra data in limits before " << fixed << setprecision(3) << (lim_probab.front().bound / g_pip) << endl;
+  auto probab = fxlib::RateProbability(samples, g_distr_size, from, step);
+  if (probab.size() != g_distr_size + 3) {
+    throw logic_error("Invalid size of " + name + " probability!");
+  }
+  if (probab.front().count != samples.size()) {
+    cout << "[ERROR] There are extra data in " + name + " before " << fixed << setprecision(3) << (probab.front().bound / g_pip) << endl;
     throw logic_error("Something has gone wrong!");
   }
-  if (los_probab.front().count != losses.size()) {
-    cout << "[NOTE] There are extra data in losses before " << fixed << setprecision(3) << (los_probab.front().bound / g_pip) << endl;
-    throw logic_error("Something has gone wrong!");
+  if (probab.back().count > 0) {
+    cout << "[NOTE] There are " << probab.back().count << " extra data in " + name + " beyond " << fixed << setprecision(3) << (probab.back().bound / g_pip) << " value" << endl;
   }
-  if (lim_probab.back().count > 0) {
-    cout << "[NOTE] There are " << lim_probab.back().count << " extra data in limits beyond " << fixed << setprecision(3) << (lim_probab.back().bound / g_pip) << " value" << endl;
-  }
-  if (los_probab.back().count > 0) {
-    cout << "[NOTE] There are " << los_probab.back().count << " extra data in losses beyond " << fixed << setprecision(3) << (los_probab.back().bound / g_pip) << " value" << endl;
-  }
-
-  auto limit_iter = limits.cbegin();
-  auto loss_iter = losses.cbegin();
-  using citer = fxrate_samples::const_iterator;
-  auto count = [](citer& iter, const citer& end, const double bound, vector<double>& time_collector) {
-    while ((iter < end) && (iter->margin < bound)) {
-      time_collector.push_back(iter->period);
-      ++iter;
-    }
-  };
-  {
-    const double bottom_bound = from - step;
-    vector<double> tcollect;
-    count(limit_iter, limits.cend(), bottom_bound, tcollect);
-    count(loss_iter, losses.cend(), bottom_bound, tcollect);
-  }
-  for (size_t i = 0; i < probab.size(); i++) {
-    probab[i].rate = lim_probab[i + 1].bound;
-    {
-      vector<double> tcollect;
-      count(limit_iter, limits.cend(), probab[i].rate, tcollect);
-      probab[i].prof = lim_probab[i + 1].prob;
-      if (!tcollect.empty()) {
-        for (const double& t: tcollect) {
-          probab[i].prof_d.durat += t;
-        }
-        probab[i].prof_d.durat /= tcollect.size();
-        if (tcollect.size() > 1) {
-          for (const double& t : tcollect) {
-            const double d = t - probab[i].prof_d.durat;
-            probab[i].prof_d.error += d * d;
-          }
-          probab[i].prof_d.error = sqrt(probab[i].prof_d.error / (tcollect.size() - 1));
-        }
-        probab[i].prof_d.count = tcollect.size();
-      }
-    }
-    {
-      vector<double> tcollect;
-      count(loss_iter, losses.cend(), probab[i].rate, tcollect);
-      probab[i].loss = los_probab[i + 1].prob;
-    }
-  }
-  lambda_prof = fxlib::ApproxRateProbability(lim_probab);
-  lambda_loss = fxlib::ApproxRateProbability(los_probab);
   return probab;
 }
 
@@ -290,9 +224,21 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     }
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
-    fxlib::fxprobab_coefs lambda_prof = {0};
-    fxlib::fxprobab_coefs lambda_loss = {0};
-    const auto probab = BuildProbability(max_limits, max_losses, vo, dv, lambda_prof, lambda_loss);
+    const auto lim_probab = BuildProbability(max_limits, vo, dv, "limits");
+    const fxprobab_coefs lambda_prof = fxlib::ApproxRateProbability(lim_probab);
+    const auto lim_durats = fxlib::DurationDistribution(max_limits, g_distr_size, vo, dv);
+    if (lim_durats.size() != lim_probab.size()) {
+      throw logic_error("Size of limits probability is not equal duration distribution one!");
+    }
+    const auto los_probab = BuildProbability(max_losses, vo, dv, "losses");
+    const fxprobab_coefs lambda_loss = fxlib::ApproxRateProbability(los_probab);
+    const auto los_durats = fxlib::DurationDistribution(max_losses, g_distr_size, vo, dv);
+    if (los_durats.size() != los_probab.size()) {
+      throw logic_error("Size of losses probability is not equal duration distribution one!");
+    }
+    if (lim_probab.size() != los_probab.size()) {
+      throw logic_error("Size of limits probability is not equal losses one!");
+    }
     cout << "done" << endl;
     boost::filesystem::path disp_file = g_outpath;
     disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + str_tm + ".gpl");
@@ -326,14 +272,26 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     fout << "EOD" << endl;
     fout << "# Probability of maximum profit limits and stop-losses." << endl;
     fout << "$Probab << EOD" << endl;
-    for (size_t i = 0; i < probab.size(); i++) {
+    for (size_t i = 0; i <= g_distr_size; i++) {
+      if (lim_probab[i + 1].bound != los_probab[i + 1].bound) {
+        throw logic_error("Something has gone wrong!");
+      }
+      if (lim_probab[i + 1].bound != lim_durats[i + 1].bound) {
+        throw logic_error("Something has gone wrong!");
+      }
+      if (lim_probab[i + 1].bound != los_durats[i + 1].bound) {
+        throw logic_error("Something has gone wrong!");
+      }
       fout << setw(3) << setfill('0') << i << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << probab[i].rate / g_pip << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << probab[i].prof << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << probab[i].loss << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << probab[i].prof_d.durat << " ";
-      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << probab[i].prof_d.error << " ";
-      fout << setw(6) << setfill(' ') << probab[i].prof_d.count << endl;
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << lim_probab[i + 1].bound / g_pip << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << lim_probab[i + 1].prob << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(4) << los_probab[i + 1].prob << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << lim_durats[i + 1].durat << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << lim_durats[i + 1].error << " ";
+      fout << setw(6) << setfill(' ') << lim_durats[i + 1].count << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << los_durats[i + 1].durat << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(1) << los_durats[i + 1].error << " ";
+      fout << setw(6) << setfill(' ') << los_durats[i + 1].count << endl;
     }
     fout << "EOD" << endl;
     cout << "Done" << endl;
