@@ -256,6 +256,10 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     for (const auto& s: out_strs) {
       fout << "# " << s << endl;
     }
+    fout << "hour=" << static_cast<int>(fxlib::fxperiodicity::hourly) << endl;
+    fout << "day=" << static_cast<int>(fxlib::fxperiodicity::daily) << endl;
+    fout << "week=" << static_cast<int>(fxlib::fxperiodicity::weekly) << endl;
+    fout << "month=" << static_cast<int>(fxlib::fxperiodicity::monthly) << endl;
     fout << "N=" << N << endl;
     fout << defaultfloat << setprecision(6) << "prof_plam2=" << lim_pcoefs.lambda2 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lim_pcoefs.lambda2)) * g_pip) << endl;
     fout << defaultfloat << setprecision(6) << "prof_plam1=" << lim_pcoefs.lambda1 * g_pip << "  # " << 1.0 / (lim_pcoefs.lambda1 * g_pip) << endl;
