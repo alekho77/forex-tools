@@ -2,6 +2,7 @@ set terminal windows enhanced
 load file
 set title 'Probabilities'
 set xlabel '(pips)'
-set ylabel '(Y)'
-plot $Probab using 2:($2*$3) with histeps lc 'web-green' title 'Yield',\
-     '' using 2:($2*Pprof($2)) with lines lc 'violet' lw 1.5 dt 4 title 'Yield approx'
+set ylabel '(Y pips per day)'
+Y(m,P,D)=m/(1/P+D)*day
+plot $Probab using 2:(Y($2,$3,$5)) with histeps lc 'web-green' title 'Yield Max',\
+      '' using 2:(Y($2,Pprof($2),Dprof($2))) with lines lc 'violet' title 'Yield Max Appr'
