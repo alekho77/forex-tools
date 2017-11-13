@@ -5,8 +5,8 @@
 namespace fxlib {
 
 struct fxrate_sample {
-  double rate;    // Expected rate
-  double period;  // Time of awaiting that rate, min
+  double margin;  // Expected margin or stop loss, in rate units
+  double period;  // Time of awaiting that margin, min
 };
 
 using fxrate_samples = std::vector<fxrate_sample>;

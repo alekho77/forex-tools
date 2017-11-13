@@ -9,12 +9,12 @@ namespace fxlib {
 void RateStats(const fxrate_samples& samples, double& mean, double& variance) {
   mean = 0.0;
   for (const auto& s: samples) {
-    mean += s.rate;
+    mean += s.margin;
   }
   mean /= samples.size();
   variance = 0.0;
   for (const auto& s: samples) {
-    const double delta = s.rate - mean;
+    const double delta = s.margin - mean;
     variance += delta * delta;
   }
   variance = std::sqrt(variance / (samples.size() - 1));
@@ -23,13 +23,13 @@ void RateStats(const fxrate_samples& samples, double& mean, double& variance) {
 fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
   using citer = fxrate_samples::const_iterator;
   auto counter = [end = samples.end()](citer& iter, fxdensity_sample& density) {
-    while ((iter < end) && (iter->rate <= density.bound)) {
+    while ((iter < end) && (iter->margin <= density.bound)) {
       ++density.count;
       ++iter;
     }
   };
 
-  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.rate < rhs.rate; });
+  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.margin < rhs.margin; });
 
   fxrate_distribution distrib;
   distrib.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
@@ -51,14 +51,14 @@ fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size,
 fxrate_probability RateProbability(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
   using citer = fxrate_samples::const_iterator;
   auto counter = [end = samples.end(), N = samples.size()](citer& iter, fxprobab_sample& sample) {
-    while ((iter < end) && (iter->rate < sample.bound)) {
+    while ((iter < end) && (iter->margin < sample.bound)) {
       --sample.count;
       ++iter;
     }
     sample.prob = static_cast<double>(sample.count) / static_cast<double>(N);
   };
 
-  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.rate < rhs.rate; });
+  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.margin < rhs.margin; });
 
   fxrate_probability probab;
   probab.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values

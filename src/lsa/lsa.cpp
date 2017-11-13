@@ -139,7 +139,7 @@ simple_probability BuildProbability(fxrate_samples& limits, fxrate_samples& loss
   auto loss_iter = losses.cbegin();
   using citer = fxrate_samples::const_iterator;
   auto count = [](citer& iter, const citer& end, const double bound, vector<double>& time_collector) {
-    while ((iter < end) && (iter->rate < bound)) {
+    while ((iter < end) && (iter->margin < bound)) {
       time_collector.push_back(iter->period);
       ++iter;
     }
@@ -247,14 +247,14 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     max_losses.push_back({-po, 0});
     for (auto citer = piter + 1; citer < seq.candles.end() && citer->time <= (piter->time + timeout); ++citer) {
       const double p = profit(*citer, *piter);
-      if (max_limits.back().rate < p) {
+      if (max_limits.back().margin < p) {
         max_limits.back() = {p, (citer->time - piter->time).total_seconds() / 60.0};
       }
-      if (max_losses.back().rate < -p) {
+      if (max_losses.back().margin < -p) {
         max_losses.back() = {-p, (citer->time - piter->time).total_seconds() / 60.0};
       }
     }
-    if (max_limits.back().rate < 0 || max_losses.back().rate < 0) {
+    if (max_limits.back().margin < 0 || max_losses.back().margin < 0) {
       throw logic_error("Something has gone wrong!");
     }
   }  // for seq.candles
