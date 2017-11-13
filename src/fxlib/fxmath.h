@@ -5,19 +5,19 @@
 
 namespace fxlib {
 
-struct fxrate_sample {
+struct fxmargin_sample {
   double margin;  // Expected margin or stop loss, in rate units
   double period;  // Time of awaiting that margin, min
 };
 
-using fxrate_samples = std::vector<fxrate_sample>;
+using fxmargin_samples = std::vector<fxmargin_sample>;
 
 struct fxdensity_sample {
   double bound;  // Bound of margin
   size_t count;  // Number of samples that are match the margin bound
 };
 
-using fxrate_distribution = std::vector<fxdensity_sample>;
+using fxmargin_distribution = std::vector<fxdensity_sample>;
 
 struct fxprobab_sample : fxdensity_sample {
   fxprobab_sample(double b, size_t c, double p) : fxdensity_sample({b, c}), prob(p) {}
@@ -25,7 +25,7 @@ struct fxprobab_sample : fxdensity_sample {
   double prob;
 };
 
-using fxrate_probability = std::vector<fxprobab_sample>;
+using fxmargin_probability = std::vector<fxprobab_sample>;
 
 struct fxduration_sample : fxdensity_sample {
   fxduration_sample(double b, size_t c, double d, double e) : fxdensity_sample({b, c}), durat(d), error(e) {}
@@ -42,33 +42,33 @@ struct fxprobab_coefs {
   double lambda2;
 };
 
-static inline fxrate_samples& fxsort(fxrate_samples& samples) {
-  std::sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.margin < rhs.margin; });
+static inline fxmargin_samples& fxsort(fxmargin_samples& samples) {
+  std::sort(samples.begin(), samples.end(), [](const fxmargin_sample& lhs, const fxmargin_sample& rhs) { return lhs.margin < rhs.margin; });
   return samples;
 }
 
 /// Calculate the mean and the variance values for sequence of samples.
-void RateStats(const fxrate_samples& samples, double& mean, double& variance);
+void MarginStats(const fxmargin_samples& samples, double& mean, double& variance);
 
 /// Build probability distribution for sequence of margin samples.
 /**
   The sequence of margin samples must be sorted.
 */
-fxrate_distribution RateDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
+fxmargin_distribution MarginDistribution(const fxmargin_samples& samples, size_t distr_size, const double from, const double step);
 
 /// Build probability of samples margin.
 /**
   The sequence of margin samples must be sorted.
 */
-fxrate_probability RateProbability(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
+fxmargin_probability MarginProbability(const fxmargin_samples& samples, size_t distr_size, const double from, const double step);
 
 /// Approximate the probability of samples margin.
-fxprobab_coefs ApproxRateProbability(const fxrate_probability& probab);
+fxprobab_coefs ApproxMarginProbability(const fxmargin_probability& probab);
 
 /// Build duration distribution for margin waitings.
 /**
   The sequence of margin samples must be sorted.
 */
-fxdurat_distribution DurationDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step);
+fxdurat_distribution MarginDurationDistribution(const fxmargin_samples& samples, size_t distr_size, const double from, const double step);
 
 }  // namespace fxlib

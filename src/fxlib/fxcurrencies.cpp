@@ -34,12 +34,12 @@ namespace fxlib {
 #define GBPJPY PAIR(GBP, JPY)
 #define GBPCHF PAIR(GBP, CHF)
 
-const char* currencies[] = {USD, EUR, GBP, CHF, JPY, CAD, AUD, NZD};
-const char* pairs[] = {EURUSD, GBPUSD, USDCHF, USDJPY, USDCAD, AUDUSD, NZDUSD, EURJPY, EURGBP, EURCHF, GBPJPY, GBPCHF};
+const char* fxcurrencies[] = {USD, EUR, GBP, CHF, JPY, CAD, AUD, NZD};
+const char* fxpairs[] = {EURUSD, GBPUSD, USDCHF, USDJPY, USDCAD, AUDUSD, NZDUSD, EURJPY, EURGBP, EURCHF, GBPJPY, GBPCHF};
 
 
 bool IsCurrency(const std::string & curr) {
-  return std::any_of(std::cbegin(currencies), std::cend(currencies), [&curr](const auto& c) {
+  return std::any_of(std::cbegin(fxcurrencies), std::cend(fxcurrencies), [&curr](const auto& c) {
     return boost::algorithm::iequals(c, curr);
   });
 }

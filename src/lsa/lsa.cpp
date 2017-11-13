@@ -23,9 +23,9 @@
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 
-using fxlib::fxrate_samples;
-using fxlib::fxrate_distribution;
-using fxlib::fxrate_probability;
+using fxlib::fxmargin_samples;
+using fxlib::fxmargin_distribution;
+using fxlib::fxmargin_probability;
 using fxlib::fxprobab_coefs;
 
 namespace {
@@ -81,9 +81,9 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   return true;
 }
 
-fxrate_distribution BuildDistribution(const fxrate_samples& samples, const double from, const double step, const std::string& name) {
+fxmargin_distribution BuildDistribution(const fxmargin_samples& samples, const double from, const double step, const std::string& name) {
   using namespace std;
-  fxrate_distribution distrib = fxlib::RateDistribution(samples, g_distr_size, from, step);
+  fxmargin_distribution distrib = fxlib::MarginDistribution(samples, g_distr_size, from, step);
   if (distrib.size() != g_distr_size + 3) {
     throw logic_error("Invalid size of " + name + " distribution!");
   }
@@ -100,9 +100,9 @@ fxrate_distribution BuildDistribution(const fxrate_samples& samples, const doubl
   return distrib;
 }
 
-fxrate_probability BuildProbability(const fxrate_samples& samples, const double from, const double step, const std::string& name) {
+fxmargin_probability BuildProbability(const fxmargin_samples& samples, const double from, const double step, const std::string& name) {
   using namespace std;
-  auto probab = fxlib::RateProbability(samples, g_distr_size, from, step);
+  auto probab = fxlib::MarginProbability(samples, g_distr_size, from, step);
   if (probab.size() != g_distr_size + 3) {
     throw logic_error("Invalid size of " + name + " probability!");
   }
@@ -164,8 +164,8 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     throw invalid_argument("Wrong position '" + positon + "'");
   }
   cout << "Analyzing near " << seq.candles.size() << " " << positon << " positions with " << timeout << " timeout..." << endl;
-  fxrate_samples max_limits;
-  fxrate_samples max_losses;
+  fxmargin_samples max_limits;
+  fxmargin_samples max_losses;
   max_limits.reserve(seq.candles.size());
   max_losses.reserve(seq.candles.size());
   size_t curr_idx = 0;
@@ -197,10 +197,10 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   }
   double mean_limit = 0;
   double var_limit = 0;
-  fxlib::RateStats(fxlib::fxsort(max_limits), mean_limit, var_limit);
+  fxlib::MarginStats(fxlib::fxsort(max_limits), mean_limit, var_limit);
   double mean_loss = 0;
   double var_loss = 0;
-  fxlib::RateStats(fxlib::fxsort(max_losses), mean_loss, var_loss);
+  fxlib::MarginStats(fxlib::fxsort(max_losses), mean_loss, var_loss);
   const size_t N = max_limits.size();
   boost::math::students_t dist(static_cast<double>(N - 1));
   const double T = boost::math::quantile(boost::math::complement(dist, g_alpha / 2));
@@ -214,6 +214,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   }
   if (vm.count("out")) {
     cout << "----------------------------------" << endl;
+
     cout << "Preparing distributions..." << endl;
     const double vo = 0;
     const double dv = 6 * (max)(var_limit, var_loss) / g_distr_size;
@@ -225,14 +226,14 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
     const auto lim_probab = BuildProbability(max_limits, vo, dv, "limits");
-    const fxprobab_coefs lambda_prof = fxlib::ApproxRateProbability(lim_probab);
-    const auto lim_durats = fxlib::DurationDistribution(max_limits, g_distr_size, vo, dv);
+    const fxprobab_coefs lambda_prof = fxlib::ApproxMarginProbability(lim_probab);
+    const auto lim_durats = fxlib::MarginDurationDistribution(max_limits, g_distr_size, vo, dv);
     if (lim_durats.size() != lim_probab.size()) {
       throw logic_error("Size of limits probability is not equal duration distribution one!");
     }
     const auto los_probab = BuildProbability(max_losses, vo, dv, "losses");
-    const fxprobab_coefs lambda_loss = fxlib::ApproxRateProbability(los_probab);
-    const auto los_durats = fxlib::DurationDistribution(max_losses, g_distr_size, vo, dv);
+    const fxprobab_coefs lambda_loss = fxlib::ApproxMarginProbability(los_probab);
+    const auto los_durats = fxlib::MarginDurationDistribution(max_losses, g_distr_size, vo, dv);
     if (los_durats.size() != los_probab.size()) {
       throw logic_error("Size of losses probability is not equal duration distribution one!");
     }
@@ -240,6 +241,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       throw logic_error("Size of limits probability is not equal losses one!");
     }
     cout << "done" << endl;
+
     boost::filesystem::path disp_file = g_outpath;
     disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + str_tm + ".gpl");
     cout << "Writing " << disp_file << "..." << endl;

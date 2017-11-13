@@ -5,7 +5,7 @@
 
 namespace fxlib {
 
-void RateStats(const fxrate_samples& samples, double& mean, double& variance) {
+void MarginStats(const fxmargin_samples& samples, double& mean, double& variance) {
   mean = 0.0;
   for (const auto& s: samples) {
     mean += s.margin;
@@ -19,8 +19,8 @@ void RateStats(const fxrate_samples& samples, double& mean, double& variance) {
   variance = std::sqrt(variance / (samples.size() - 1));
 }
 
-fxrate_distribution RateDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
-  using citer = fxrate_samples::const_iterator;
+fxmargin_distribution MarginDistribution(const fxmargin_samples& samples, size_t distr_size, const double from, const double step) {
+  using citer = fxmargin_samples::const_iterator;
   auto worker = [end = samples.end()](citer& iter, fxdensity_sample& density) {
     while ((iter < end) && (iter->margin <= density.bound)) {
       ++density.count;
@@ -28,25 +28,25 @@ fxrate_distribution RateDistribution(const fxrate_samples& samples, size_t distr
     }
   };
 
-  fxrate_distribution distrib;
+  fxmargin_distribution distrib;
   distrib.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
   citer iter = samples.cbegin();
   
-  distrib.push_back({rate_from - rate_step, 0});
-  worker(iter, distrib.back());  // checking data before rate_from
+  distrib.push_back({from - step, 0});
+  worker(iter, distrib.back());  // checking data before from
 
   for (size_t i = 0; i <= distr_size; i++) {
-    distrib.push_back({rate_from + i * rate_step, 0});
+    distrib.push_back({from + i * step, 0});
     worker(iter, distrib.back());
   }
 
-  distrib.push_back({rate_from + (distr_size + 1) * rate_step, static_cast<size_t>(samples.cend() - iter)});  // remaining data beyond the interval
+  distrib.push_back({from + (distr_size + 1) * step, static_cast<size_t>(samples.cend() - iter)});  // remaining data beyond the interval
 
   return distrib;
 }
 
-fxrate_probability RateProbability(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
-  using citer = fxrate_samples::const_iterator;
+fxmargin_probability MarginProbability(const fxmargin_samples& samples, size_t distr_size, const double from, const double step) {
+  using citer = fxmargin_samples::const_iterator;
   auto worker = [end = samples.end(), N = samples.size()](citer& iter, fxprobab_sample& sample) {
     while ((iter < end) && (iter->margin < sample.bound)) {
       --sample.count;
@@ -55,25 +55,25 @@ fxrate_probability RateProbability(const fxrate_samples& samples, size_t distr_s
     sample.prob = static_cast<double>(sample.count) / static_cast<double>(N);
   };
 
-  fxrate_probability probab;
+  fxmargin_probability probab;
   probab.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
   citer iter = samples.cbegin();
 
-  probab.push_back({rate_from - rate_step, samples.size()});
-  worker(iter, probab.back());  // checking data before rate_from
+  probab.push_back({from - step, samples.size()});
+  worker(iter, probab.back());  // checking data before from
 
   for (size_t i = 0; i <= distr_size; i++) {
-    probab.push_back({rate_from + i * rate_step, probab.back().count});
+    probab.push_back({from + i * step, probab.back().count});
     worker(iter, probab.back());
   }
 
   const size_t rem_count = samples.cend() - iter;  // remaining data beyond the interval
-  probab.push_back({rate_from + (distr_size + 1) * rate_step, rem_count, static_cast<double>(rem_count) / static_cast<double>(samples.size())});
+  probab.push_back({from + (distr_size + 1) * step, rem_count, static_cast<double>(rem_count) / static_cast<double>(samples.size())});
 
   return probab;
 }
 
-fxprobab_coefs ApproxRateProbability(const fxrate_probability& probab) {
+fxprobab_coefs ApproxMarginProbability(const fxmargin_probability& probab) {
   const size_t good_interval = (probab.size() - 3) / 3 + 1;
   mathlib::approx<double, 2> appx;
   for (size_t i = 0; i < good_interval; i++) {
@@ -84,8 +84,8 @@ fxprobab_coefs ApproxRateProbability(const fxrate_probability& probab) {
   return {std::get<0>(res), std::get<1>(res)};
 }
 
-fxdurat_distribution DurationDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
-  using citer = fxrate_samples::const_iterator;
+fxdurat_distribution MarginDurationDistribution(const fxmargin_samples& samples, size_t distr_size, const double from, const double step) {
+  using citer = fxmargin_samples::const_iterator;
   auto worker = [end = samples.end()](citer& iter, fxduration_sample& sample) {
     std::vector<double> time_collector;
     while ((iter < end) && (iter->margin < sample.bound)) {
@@ -112,15 +112,15 @@ fxdurat_distribution DurationDistribution(const fxrate_samples& samples, size_t 
   distrib.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
   citer iter = samples.cbegin();
 
-  distrib.push_back(fxduration_sample{rate_from - rate_step});
-  worker(iter, distrib.back());  // checking data before rate_from
+  distrib.push_back(fxduration_sample{from - step});
+  worker(iter, distrib.back());  // checking data before from
 
   for (size_t i = 0; i <= distr_size; i++) {
-    distrib.push_back(fxduration_sample{rate_from + i * rate_step});
+    distrib.push_back(fxduration_sample{from + i * step});
     worker(iter, distrib.back());
   }
 
-  distrib.push_back(fxduration_sample{rate_from + (distr_size + 1) * rate_step, static_cast<size_t>(samples.cend() - iter), 0, 0});  // remaining data beyond the interval
+  distrib.push_back(fxduration_sample{from + (distr_size + 1) * step, static_cast<size_t>(samples.cend() - iter), 0, 0});  // remaining data beyond the interval
 
   return distrib;
 }
