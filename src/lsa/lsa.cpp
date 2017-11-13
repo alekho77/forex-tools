@@ -263,10 +263,10 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   }
   double mean_limit = 0;
   double var_limit = 0;
-  fxlib::RateStats(max_limits, mean_limit, var_limit);
+  fxlib::RateStats(fxlib::fxsort(max_limits), mean_limit, var_limit);
   double mean_loss = 0;
   double var_loss = 0;
-  fxlib::RateStats(max_losses, mean_loss, var_loss);
+  fxlib::RateStats(fxlib::fxsort(max_losses), mean_loss, var_loss);
   const size_t N = max_limits.size();
   boost::math::students_t dist(static_cast<double>(N - 1));
   const double T = boost::math::quantile(boost::math::complement(dist, g_alpha / 2));

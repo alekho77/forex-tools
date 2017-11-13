@@ -2,7 +2,6 @@
 #include "math/mathlib/approx.h"
 
 #include <cmath>
-#include <algorithm>
 
 namespace fxlib {
 
@@ -20,7 +19,7 @@ void RateStats(const fxrate_samples& samples, double& mean, double& variance) {
   variance = std::sqrt(variance / (samples.size() - 1));
 }
 
-fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
+fxrate_distribution RateDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
   using citer = fxrate_samples::const_iterator;
   auto counter = [end = samples.end()](citer& iter, fxdensity_sample& density) {
     while ((iter < end) && (iter->margin <= density.bound)) {
@@ -28,8 +27,6 @@ fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size,
       ++iter;
     }
   };
-
-  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.margin < rhs.margin; });
 
   fxrate_distribution distrib;
   distrib.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
@@ -48,7 +45,7 @@ fxrate_distribution RateDistribution(fxrate_samples& samples, size_t distr_size,
   return distrib;
 }
 
-fxrate_probability RateProbability(fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
+fxrate_probability RateProbability(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
   using citer = fxrate_samples::const_iterator;
   auto counter = [end = samples.end(), N = samples.size()](citer& iter, fxprobab_sample& sample) {
     while ((iter < end) && (iter->margin < sample.bound)) {
@@ -57,8 +54,6 @@ fxrate_probability RateProbability(fxrate_samples& samples, size_t distr_size, c
     }
     sample.prob = static_cast<double>(sample.count) / static_cast<double>(N);
   };
-
-  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.margin < rhs.margin; });
 
   fxrate_probability probab;
   probab.reserve(distr_size + 3);  // there are two extra data and (distr_size+1) values
@@ -88,5 +83,18 @@ fxprobab_coefs ApproxRateProbability(const fxrate_probability& probab) {
   auto res = appx.approach().get_as_tuple();
   return {std::get<0>(res), std::get<1>(res)};
 }
+
+//fxdurat_distribution DurationDistribution(const fxrate_samples& samples, size_t distr_size, const double rate_from, const double rate_step) {
+//  using citer = fxrate_samples::const_iterator;
+//  auto counter = [end = samples.end()](citer& iter, const double bound, std::vector<double>& time_collector) {
+//    while ((iter < end) && (iter->margin < bound)) {
+//      time_collector.push_back(iter->period);
+//      ++iter;
+//    }
+//  };
+//
+//  sort(samples.begin(), samples.end(), [](const fxrate_sample& lhs, const fxrate_sample& rhs) { return lhs.margin < rhs.margin; });
+//
+//}
 
 }  // namespace fxlib
