@@ -165,10 +165,10 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     throw invalid_argument("Wrong position '" + positon + "'");
   }
   cout << "Analyzing near " << seq.candles.size() << " " << positon << " positions with " << timeout << " timeout..." << endl;
-  fxmargin_samples max_limits;
-  fxmargin_samples max_losses;
-  max_limits.reserve(seq.candles.size());
-  max_losses.reserve(seq.candles.size());
+  fxmargin_samples limits;
+  fxmargin_samples losses;
+  limits.reserve(seq.candles.size());
+  losses.reserve(seq.candles.size());
   size_t curr_idx = 0;
   int progress = 1;
   size_t progress_idx = (progress * seq.candles.size()) / 10;
@@ -178,38 +178,38 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       progress_idx = (++progress * seq.candles.size()) / 10;
     }
     const double po = profit(*piter, *piter);
-    max_limits.push_back({po, 0});
-    max_losses.push_back({-po, 0});
+    limits.push_back({po, 0});
+    losses.push_back({-po, 0});
     for (auto citer = piter + 1; citer < seq.candles.end() && citer->time <= (piter->time + timeout); ++citer) {
       const double p = profit(*citer, *piter);
-      if (max_limits.back().margin < p) {
-        max_limits.back() = {p, (citer->time - piter->time).total_seconds() / 60.0};
+      if (limits.back().margin < p) {
+        limits.back() = {p, (citer->time - piter->time).total_seconds() / 60.0};
       }
-      if (max_losses.back().margin < -p) {
-        max_losses.back() = {-p, (citer->time - piter->time).total_seconds() / 60.0};
+      if (losses.back().margin < -p) {
+        losses.back() = {-p, (citer->time - piter->time).total_seconds() / 60.0};
       }
     }
-    if (max_limits.back().margin < 0 || max_losses.back().margin < 0) {
+    if (limits.back().margin < 0 || losses.back().margin < 0) {
       throw logic_error("Something has gone wrong!");
     }
   }  // for seq.candles
-  if (max_limits.size() < 2 || max_losses.size() < 2 || max_limits.size() != max_losses.size()) {
+  if (limits.size() < 2 || losses.size() < 2 || limits.size() != losses.size()) {
     throw logic_error("No result");
   }
-  double mean_limit = 0;
-  double var_limit = 0;
-  fxlib::MarginStats(fxlib::fxsort(max_limits), mean_limit, var_limit);
-  double mean_loss = 0;
-  double var_loss = 0;
-  fxlib::MarginStats(fxlib::fxsort(max_losses), mean_loss, var_loss);
-  const size_t N = max_limits.size();
+  double lim_mean = 0;
+  double lim_var = 0;
+  fxlib::MarginStats(fxlib::fxsort(limits), lim_mean, lim_var);
+  double los_mean = 0;
+  double los_var = 0;
+  fxlib::MarginStats(fxlib::fxsort(losses), los_mean, los_var);
+  const size_t N = limits.size();
   boost::math::students_t dist(static_cast<double>(N - 1));
   const double T = boost::math::quantile(boost::math::complement(dist, g_alpha / 2));
-  const double w_limit = T * var_limit / sqrt(static_cast<double>(N));
-  const double w_loss  = T * var_loss / sqrt(static_cast<double>(N));
+  const double lim_w = T * lim_var / sqrt(static_cast<double>(N));
+  const double los_w  = T * los_var / sqrt(static_cast<double>(N));
   cout << "Done" << endl;
   cout << "----------------------------------" << endl;
-  const auto out_strs = PrepareOutputStrings(N, make_tuple(mean_limit / g_pip, w_limit / g_pip, var_limit / g_pip), make_tuple(mean_loss / g_pip, w_loss / g_pip, var_loss / g_pip));
+  const auto out_strs = PrepareOutputStrings(N, make_tuple(lim_mean / g_pip, lim_w / g_pip, lim_var / g_pip), make_tuple(los_mean / g_pip, los_w / g_pip, los_var / g_pip));
   for (const auto& s: out_strs) {
     cout << s << endl;
   }
@@ -217,25 +217,26 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     cout << "----------------------------------" << endl;
 
     cout << "Preparing distributions..." << endl;
-    const double vo = 0;
-    const double dv = 6 * (max)(var_limit, var_loss) / g_distr_size;
-    const auto lim_distrib = BuildDistribution(max_limits, vo, dv, "limits");
-    const auto los_distrib = BuildDistribution(max_losses, vo, dv, "losses");
+    const double mo = 0;
+    const double dm = 6 * (max)(lim_var, los_var) / g_distr_size;
+    const auto lim_distrib = BuildDistribution(limits, mo, dm, "limits");
+    const auto los_distrib = BuildDistribution(losses, mo, dm, "losses");
     if (lim_distrib.size() != los_distrib.size()) {
       throw logic_error("Size of limits distribution is not equal losses one!");
     }
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
-    const auto lim_probab = BuildProbability(max_limits, vo, dv, "limits");
-    const fxprobab_coefs pcoefs_prof = fxlib::ApproxMarginProbability(lim_probab);
-    const auto lim_durats = fxlib::MarginDurationDistribution(max_limits, g_distr_size, vo, dv);
-    const fxdurat_coefs dcoefs_prof = fxlib::ApproxDurationDistribution(lim_durats);
+    const auto lim_probab = BuildProbability(limits, mo, dm, "limits");
+    const fxprobab_coefs lim_pcoefs = fxlib::ApproxMarginProbability(lim_probab);
+    const auto lim_durats = fxlib::MarginDurationDistribution(limits, g_distr_size, mo, dm);
+    const fxdurat_coefs lim_dcoefs = fxlib::ApproxDurationDistribution(lim_durats);
     if (lim_durats.size() != lim_probab.size()) {
       throw logic_error("Size of limits probability is not equal duration distribution one!");
     }
-    const auto los_probab = BuildProbability(max_losses, vo, dv, "losses");
-    const fxprobab_coefs pcoefs_loss = fxlib::ApproxMarginProbability(los_probab);
-    const auto los_durats = fxlib::MarginDurationDistribution(max_losses, g_distr_size, vo, dv);
+    const auto los_probab = BuildProbability(losses, mo, dm, "losses");
+    const fxprobab_coefs los_pcoefs = fxlib::ApproxMarginProbability(los_probab);
+    const auto los_durats = fxlib::MarginDurationDistribution(losses, g_distr_size, mo, dm);
+    const fxdurat_coefs los_dcoefs = fxlib::ApproxDurationDistribution(los_durats);
     if (los_durats.size() != los_probab.size()) {
       throw logic_error("Size of losses probability is not equal duration distribution one!");
     }
@@ -256,12 +257,12 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       fout << "# " << s << endl;
     }
     fout << "N=" << N << endl;
-    fout << defaultfloat << setprecision(6) << "lambda1_prof=" << pcoefs_prof.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(pcoefs_prof.lambda1)) * g_pip) << endl;
-    fout << defaultfloat << setprecision(6) << "lambda2_prof=" << pcoefs_prof.lambda2 * g_pip << "  # " << 1.0 / (pcoefs_prof.lambda2 * g_pip) << endl;
-    fout << "Pprof(t)=exp(-(lambda1_prof*t**2 + lambda2_prof*t))" << endl;
-    fout << defaultfloat << setprecision(6) << "lambda1_loss=" << pcoefs_loss.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(pcoefs_loss.lambda1)) * g_pip) << endl;
-    fout << defaultfloat << setprecision(6) << "lambda2_loss=" << pcoefs_loss.lambda2 * g_pip << "  # " << 1.0 / (pcoefs_loss.lambda2 * g_pip) << endl;
-    fout << "Ploss(t)=exp(-(lambda1_loss*t**2 + lambda2_loss*t))" << endl;
+    fout << defaultfloat << setprecision(6) << "prof_plam2=" << lim_pcoefs.lambda2 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lim_pcoefs.lambda2)) * g_pip) << endl;
+    fout << defaultfloat << setprecision(6) << "prof_plam1=" << lim_pcoefs.lambda1 * g_pip << "  # " << 1.0 / (lim_pcoefs.lambda1 * g_pip) << endl;
+    fout << "Pprof(t)=exp(-(prof_plam2*t**2 + prof_plam1*t))" << endl;
+    fout << defaultfloat << setprecision(6) << "loss_plam2=" << los_pcoefs.lambda2 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(los_pcoefs.lambda2)) * g_pip) << endl;
+    fout << defaultfloat << setprecision(6) << "loss_plam1=" << los_pcoefs.lambda1 * g_pip << "  # " << 1.0 / (los_pcoefs.lambda1 * g_pip) << endl;
+    fout << "Ploss(t)=exp(-(loss_plam2*t**2 + loss_plam1*t))" << endl;
     fout << "# Distribution of maximum profit limits and stop-losses." << endl;
     fout << "$Distrib << EOD" << endl;
     for (size_t i = 0; i <= g_distr_size; i++) {
@@ -275,9 +276,12 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     }
     fout << "EOD" << endl;
     fout << "# Probability of maximum profit limits and stop-losses." << endl;
-    fout << defaultfloat << setprecision(6) << "prof_T=" << dcoefs_prof.T << endl;
-    fout << defaultfloat << setprecision(6) << "prof_lam=" << dcoefs_prof.lambda * g_pip << endl;
-    fout << "Dprof(t)=prof_T*(1-exp(-(prof_lam*t)))" << endl;
+    fout << defaultfloat << setprecision(6) << "prof_dT=" << lim_dcoefs.T << endl;
+    fout << defaultfloat << setprecision(6) << "prof_dlam=" << lim_dcoefs.lambda * g_pip << endl;
+    fout << "Dprof(t)=prof_dT*(1-exp(-(prof_dlam*t)))" << endl;
+    fout << defaultfloat << setprecision(6) << "loss_dT=" << los_dcoefs.T << endl;
+    fout << defaultfloat << setprecision(6) << "loss_dlam=" << los_dcoefs.lambda * g_pip << endl;
+    fout << "Dloss(t)=loss_dT*(1-exp(-(loss_dlam*t)))" << endl;
     fout << "$Probab << EOD" << endl;
     for (size_t i = 0; i <= g_distr_size; i++) {
       if (lim_probab[i + 1].bound != los_probab[i + 1].bound) {

@@ -38,7 +38,7 @@ using fxdurat_distribution = std::vector<fxduration_sample>;
 
 /// Approximation coefficients for margin probability.
 /**
-  Approximating function is P(m) = exp(-(lambda1*m^2 + lambda2*m)).
+  Approximating function is P(m) = exp(-(lambda2*m^2 + lambda1*m)).
 */
 struct fxprobab_coefs {
   double lambda1;
