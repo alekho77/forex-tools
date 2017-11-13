@@ -37,9 +37,21 @@ struct fxduration_sample : fxdensity_sample {
 using fxdurat_distribution = std::vector<fxduration_sample>;
 
 /// Approximation coefficients for margin probability.
+/**
+  Approximating function is P(m) = exp(-(lambda1*m^2 + lambda2*m)).
+*/
 struct fxprobab_coefs {
   double lambda1;
   double lambda2;
+};
+
+/// Approximation coefficients for duration distribution.
+/**
+  Approximating function is D(m) = T*[1 - exp(-lambda*m)].
+*/
+struct fxdurat_coefs {
+  double T;
+  double lambda;
 };
 
 static inline fxmargin_samples& fxsort(fxmargin_samples& samples) {
@@ -70,5 +82,8 @@ fxprobab_coefs ApproxMarginProbability(const fxmargin_probability& probab);
   The sequence of margin samples must be sorted.
 */
 fxdurat_distribution MarginDurationDistribution(const fxmargin_samples& samples, size_t distr_size, const double from, const double step);
+
+/// Approximate margin duration distribution.
+fxdurat_coefs ApproxDurationDistribution(const fxdurat_distribution& distrib);
 
 }  // namespace fxlib

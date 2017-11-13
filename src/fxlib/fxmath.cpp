@@ -1,5 +1,6 @@
 #include "fxmath.h"
 #include "math/mathlib/approx.h"
+#include "math/mathlib/fapprox.h"
 
 #include <cmath>
 
@@ -123,6 +124,25 @@ fxdurat_distribution MarginDurationDistribution(const fxmargin_samples& samples,
   distrib.push_back(fxduration_sample{from + (distr_size + 1) * step, static_cast<size_t>(samples.cend() - iter), 0, 0});  // remaining data beyond the interval
 
   return distrib;
+}
+
+fxdurat_coefs ApproxDurationDistribution(const fxdurat_distribution& distrib) {
+  using namespace std;
+  const size_t good_interval = (distrib.size() - 3) / 2 + 1;
+  const size_t magic_number = (distrib.size() - 3) / 10;
+  mathlib::fapprox<double(double,double)> appx;
+  for (size_t i = 0; i < good_interval; i++) {
+    appx([t = distrib[i + 1].bound, D = distrib[i + 1].durat](double T, double lambda) {
+      return T * (1 - exp(- (lambda * t))) - D; });
+  }
+  double To = 0;
+  for (size_t i = distrib.size() - magic_number - 1; i < distrib.size() - 1; i++) {
+    To += distrib[i + 1].durat;
+  }
+  To /= magic_number;
+  const double lambda = -log(1 - distrib[magic_number].durat / To) / distrib[magic_number].bound;
+  auto res = appx.approach(To, lambda).get_as_tuple();
+  return{get<0>(res), get<1>(res)};
 }
 
 }  // namespace fxlib

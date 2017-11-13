@@ -27,6 +27,7 @@ using fxlib::fxmargin_samples;
 using fxlib::fxmargin_distribution;
 using fxlib::fxmargin_probability;
 using fxlib::fxprobab_coefs;
+using fxlib::fxdurat_coefs;
 
 namespace {
 boost::filesystem::path g_srcbin;
@@ -226,13 +227,14 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     cout << "done" << endl;
     cout << "Preparing probabilities..." << endl;
     const auto lim_probab = BuildProbability(max_limits, vo, dv, "limits");
-    const fxprobab_coefs lambda_prof = fxlib::ApproxMarginProbability(lim_probab);
+    const fxprobab_coefs pcoefs_prof = fxlib::ApproxMarginProbability(lim_probab);
     const auto lim_durats = fxlib::MarginDurationDistribution(max_limits, g_distr_size, vo, dv);
+    const fxdurat_coefs dcoefs_prof = fxlib::ApproxDurationDistribution(lim_durats);
     if (lim_durats.size() != lim_probab.size()) {
       throw logic_error("Size of limits probability is not equal duration distribution one!");
     }
     const auto los_probab = BuildProbability(max_losses, vo, dv, "losses");
-    const fxprobab_coefs lambda_loss = fxlib::ApproxMarginProbability(los_probab);
+    const fxprobab_coefs pcoefs_loss = fxlib::ApproxMarginProbability(los_probab);
     const auto los_durats = fxlib::MarginDurationDistribution(max_losses, g_distr_size, vo, dv);
     if (los_durats.size() != los_probab.size()) {
       throw logic_error("Size of losses probability is not equal duration distribution one!");
@@ -254,11 +256,11 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       fout << "# " << s << endl;
     }
     fout << "N=" << N << endl;
-    fout << "lambda1_prof=" << lambda_prof.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lambda_prof.lambda1)) * g_pip) << endl;
-    fout << "lambda2_prof=" << lambda_prof.lambda2 * g_pip << "  # " << 1.0 / (lambda_prof.lambda2 * g_pip) << endl;
+    fout << defaultfloat << setprecision(6) << "lambda1_prof=" << pcoefs_prof.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(pcoefs_prof.lambda1)) * g_pip) << endl;
+    fout << defaultfloat << setprecision(6) << "lambda2_prof=" << pcoefs_prof.lambda2 * g_pip << "  # " << 1.0 / (pcoefs_prof.lambda2 * g_pip) << endl;
     fout << "Pprof(t)=exp(-(lambda1_prof*t**2 + lambda2_prof*t))" << endl;
-    fout << "lambda1_loss=" << lambda_loss.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lambda_loss.lambda1)) * g_pip) << endl;
-    fout << "lambda2_loss=" << lambda_loss.lambda2 * g_pip << "  # " << 1.0 / (lambda_loss.lambda2 * g_pip) << endl;
+    fout << defaultfloat << setprecision(6) << "lambda1_loss=" << pcoefs_loss.lambda1 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(pcoefs_loss.lambda1)) * g_pip) << endl;
+    fout << defaultfloat << setprecision(6) << "lambda2_loss=" << pcoefs_loss.lambda2 * g_pip << "  # " << 1.0 / (pcoefs_loss.lambda2 * g_pip) << endl;
     fout << "Ploss(t)=exp(-(lambda1_loss*t**2 + lambda2_loss*t))" << endl;
     fout << "# Distribution of maximum profit limits and stop-losses." << endl;
     fout << "$Distrib << EOD" << endl;
@@ -273,6 +275,9 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     }
     fout << "EOD" << endl;
     fout << "# Probability of maximum profit limits and stop-losses." << endl;
+    fout << defaultfloat << setprecision(6) << "prof_T=" << dcoefs_prof.T << endl;
+    fout << defaultfloat << setprecision(6) << "prof_lam=" << dcoefs_prof.lambda * g_pip << endl;
+    fout << "Dprof(t)=prof_T*(1-exp(-(prof_lam*t)))" << endl;
     fout << "$Probab << EOD" << endl;
     for (size_t i = 0; i <= g_distr_size; i++) {
       if (lim_probab[i + 1].bound != los_probab[i + 1].bound) {
