@@ -1,0 +1,95 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 17.05.0 ] */
+/* [wxMaxima: input   start ] */
+kill (all);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+load ("newton1");
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+P(m):=exp(-(λ2*m^2+λ1*m));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+D(m):=T*(1-exp(-τ*m));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Y(m):=m*P(m)/(1+P(m)*D(m));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+assume(m >= 0, T>0, τ>0, λ1>0, λ2>0);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+DY: diff(Y(m), m);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+m_max: solve(DY=0,m);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+λ1: 0.0224624;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+λ2: 5.73222e-06;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+τ: 0.0256724;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+T: 1146;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+m_max, numer, simp;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d(P(m),[m,0,500]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d(D(m),[m,0,500]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d([Y(m)*24*60],[m,0,500]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d(DY,[m,0,500],[y,-0.002,0.002]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+newton(DY,m,220, 1e-4);
+/* [wxMaxima: input   end   ] */
+
+
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$
