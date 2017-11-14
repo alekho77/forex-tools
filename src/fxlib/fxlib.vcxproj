@@ -148,6 +148,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="finam\finam.cpp" />
+    <ClCompile Include="fxanalysis.cpp" />
     <ClCompile Include="fxcurrencies.cpp" />
     <ClCompile Include="fxmath.cpp" />
     <ClCompile Include="fxquote.cpp" />

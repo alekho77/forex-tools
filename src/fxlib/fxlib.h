@@ -3,4 +3,4 @@
 #include "fxtime.h"
 #include "fxquote.h"
 #include "fxcurrencies.h"
-#include "fxmath.h"
+#include "fxanalysis.h"

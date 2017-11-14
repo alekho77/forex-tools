@@ -68,5 +68,8 @@
     <ClCompile Include="fxmath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fxanalysis.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

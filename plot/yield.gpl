@@ -5,4 +5,5 @@ set xlabel '(pips)'
 set ylabel '(Y pips per day)'
 Y(m,P,D)=m/(1/P+D)*day
 plot $Probab using 2:(Y($2,$3,$5)) with histeps lc 'web-green' title 'Yield Max',\
-      '' using 2:(Y($2,Pprof($2),Dprof($2))) with lines lc 'violet' title 'Yield Max Appr'
+      '' using 2:(Y($2,Pprof($2),Dprof($2))) with lines lc 'violet' title 'Yield Max Appr',\
+      '+' using (prof_m_max):(prof_max*day) with points ls 7 title 'Max Yield'
