@@ -243,6 +243,8 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       throw logic_error("Size of limits probability is not equal losses one!");
     }
     const double lim_max_m = fxlib::MaxMargin(lim_pcoefs, lim_dcoefs);
+    const double lim_max_probab = fxlib::margin_probab(lim_pcoefs, lim_max_m);
+    const double lim_max_durat = fxlib::margin_duration(lim_dcoefs, lim_max_m);
     const double lim_max_yield = fxlib::margin_yield(lim_pcoefs, lim_dcoefs, lim_max_m);
     cout << "done" << endl;
 
@@ -284,8 +286,11 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     fout << defaultfloat << setprecision(6) << "prof_dT=" << lim_dcoefs.T << endl;
     fout << defaultfloat << setprecision(6) << "prof_dlam=" << lim_dcoefs.lambda * g_pip << endl;
     fout << "Dprof(t)=prof_dT*(1-exp(-(prof_dlam*t)))" << endl;
-    fout << "prof_m_max=" << lim_max_m / g_pip << endl;
-    fout << "prof_max=" << lim_max_yield / g_pip << endl;
+    fout << defaultfloat << setprecision(6) << "prof_m_max=" << lim_max_m / g_pip << endl;
+    fout << defaultfloat << setprecision(6) << "prof_P_max=" << lim_max_probab << endl;
+    fout << defaultfloat << setprecision(6) << "prof_D_max=" << lim_max_durat << endl;
+    fout << defaultfloat << setprecision(6) << "prof_T_max=" << 1 / lim_max_probab + lim_max_durat << endl;
+    fout << defaultfloat << setprecision(6) << "prof_max=" << lim_max_yield / g_pip << endl;
     fout << defaultfloat << setprecision(6) << "loss_dT=" << los_dcoefs.T << endl;
     fout << defaultfloat << setprecision(6) << "loss_dlam=" << los_dcoefs.lambda * g_pip << endl;
     fout << "Dloss(t)=loss_dT*(1-exp(-(loss_dlam*t)))" << endl;
