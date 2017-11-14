@@ -77,6 +77,10 @@ fxmargin_probability MarginProbability(const fxmargin_samples& samples, size_t d
 /// Approximate the probability of samples margin.
 fxprobab_coefs ApproxMarginProbability(const fxmargin_probability& probab);
 
+static inline double margin_probab(const fxprobab_coefs& coefs, double m) {
+  return std::exp(-(coefs.lambda2 * m * m + coefs.lambda1 * m));
+}
+
 /// Build duration distribution for margin waitings.
 /**
   The sequence of margin samples must be sorted.
@@ -85,5 +89,9 @@ fxdurat_distribution MarginDurationDistribution(const fxmargin_samples& samples,
 
 /// Approximate margin duration distribution.
 fxdurat_coefs ApproxDurationDistribution(const fxdurat_distribution& distrib);
+
+static inline double margin_duration(const fxdurat_coefs& coefs, double m) {
+  return coefs.T * (1 - std::exp(-coefs.lambda * m));
+}
 
 }  // namespace fxlib
