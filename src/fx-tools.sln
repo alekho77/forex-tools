@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "math", "math\mathlib\math.v
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mathlib-test", "math\mathlib-test\mathlib-test\mathlib-test.vcxproj", "{92715C9B-9AB6-4FE3-8DBE-92261695A3A6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Analysis", "Analysis", "{23629A07-E3E2-4076-8CC1-55C73D073161}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -78,7 +80,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{353F89CE-40A2-4F04-BEA0-C897C81E0CAA} = {23629A07-E3E2-4076-8CC1-55C73D073161}
 		{3043C193-4F09-4410-A22F-3BA9B4DC8571} = {5F25BD85-6DFE-4315-AF02-405FDEB18EE7}
+		{24E43695-13A8-40DC-92AF-61CB5A92741C} = {23629A07-E3E2-4076-8CC1-55C73D073161}
 		{92715C9B-9AB6-4FE3-8DBE-92261695A3A6} = {5F25BD85-6DFE-4315-AF02-405FDEB18EE7}
 	EndGlobalSection
 EndGlobal
