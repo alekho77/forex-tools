@@ -31,6 +31,8 @@ struct IForecaster {
   virtual void Reset() = 0;
   /// Get info about an algorithm.
   virtual ForecastInfo Info() const = 0;
+
+  virtual ~IForecaster() = 0;
 };
 
 }  // namespace fxlib

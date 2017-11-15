@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="dummy_algorithm.h" />
     <ClInclude Include="finam\finam.h" />
     <ClInclude Include="fxanalysis.h" />
     <ClInclude Include="fxcurrencies.h" />
@@ -148,6 +149,7 @@
     <ClInclude Include="helpers\string_conversion.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="dummy_algorithm.cpp" />
     <ClCompile Include="finam\finam.cpp" />
     <ClCompile Include="fxanalysis.cpp" />
     <ClCompile Include="fxcurrencies.cpp" />
