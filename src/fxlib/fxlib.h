@@ -4,3 +4,4 @@
 #include "fxquote.h"
 #include "fxcurrencies.h"
 #include "fxanalysis.h"
+#include "fxforecast.h"
