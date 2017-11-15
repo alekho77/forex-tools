@@ -136,6 +136,7 @@
     <ClInclude Include="finam\finam.h" />
     <ClInclude Include="fxanalysis.h" />
     <ClInclude Include="fxcurrencies.h" />
+    <ClInclude Include="fxforecast.h" />
     <ClInclude Include="fxlib.h" />
     <ClInclude Include="fxmath.h" />
     <ClInclude Include="fxquote.h" />

@@ -51,6 +51,9 @@
     <ClInclude Include="fxanalysis.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fxforecast.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fxtime.cpp">
