@@ -94,10 +94,10 @@ static inline double margin_duration(const fxdurat_coefs& coefs, double m) {
   return coefs.T * (1 - std::exp(-coefs.lambda * m));
 }
 
-static inline double margin_yield(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs, double m) {
+static inline double margin_yield(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs, double tadust, double m) {
   const double P = margin_probab(pcoefs, m);
   const double D = margin_duration(dcoefs, m);
-  return (m * P) / (1 + P * D);
+  return (m * P) / (tadust + P * D);
 }
 
 }  // namespace fxlib

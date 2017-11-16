@@ -16,12 +16,12 @@ D(m):=T*(1-exp(-τ*m));
 
 
 /* [wxMaxima: input   start ] */
-Y(m):=m*P(m)/(1+P(m)*D(m));
+Y(m):=m*P(m)/(c+P(m)*D(m));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-assume(m >= 0, T>0, τ>0, λ_1>0, λ_2>0);
+assume(m >= 0, T>0, τ>0, λ_1>0, λ_2>0, c >=1);
 /* [wxMaxima: input   end   ] */
 
 
@@ -31,12 +31,12 @@ DY: diff(Y(m), m), ratsimp;
 
 
 /* [wxMaxima: input   start ] */
-δY: (((2*m^2*%e^(m*λ_1)*λ_2+(m*λ_1-1)*%e^(m*λ_1))*%e^(m^2*λ_2)-T)*%e^(2*m*τ)+(T*m*τ+T)*%e^(m*τ))/%e^(m*τ),ratsimp;
+δY: (((2*c*m^2*%e^(m*λ_1)*λ_2+(c*m*λ_1-c)*%e^(m*λ_1))*%e^(m^2*λ_2)-T)*%e^(2*m*τ)+(T*m*τ+T)*%e^(m*τ))/%e^(m*τ),ratsimp;
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-δY_1: (2*m^2*%e^(m*λ_1)*λ_2+(m*λ_1-1)*%e^(m*λ_1))*%e^(m^2*λ_2)-T,ratsimp;
+δY_1: (2*c*m^2*%e^(m*λ_1)*λ_2+(c*m*λ_1-c)*%e^(m*λ_1))*%e^(m^2*λ_2)-T,ratsimp;
 /* [wxMaxima: input   end   ] */
 
 
@@ -46,12 +46,17 @@ solve(δY_1=0,m);
 
 
 /* [wxMaxima: input   start ] */
-solve(2*m^2*λ_2+(m*λ_1-1)=0,m);
+solve(2*c*m^2*λ_2+(c*m*λ_1-c)=0,m);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
 m_0: (sqrt(8*λ_2+λ_1^2)-λ_1)/(4*λ_2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+c: 1.388072;
 /* [wxMaxima: input   end   ] */
 
 

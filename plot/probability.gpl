@@ -7,4 +7,4 @@ plot $Probab using 2:3 with histeps lc 'web-green' title 'Profit Limits',\
      '' using 2:4 with histeps lc 'red' title 'Stop-losses',\
      '' using 2:(Pprof($2)) with lines lc 'violet' lw 1.5 dt 4 title 'Profit approx',\
      '' using 2:(Ploss($2)) with lines lc 'orange' lw 1.5 dt 4 title 'Losses approx',\
-     '+' using (prof_m_max):(prof_P_max):(sprintf("[%.0f, %.4f (%.0f min)]", prof_m_max, prof_P_max, 1/prof_P_max)) with labels point pt 7 lc 'dark-green' offset char 0,1 title 'Optimal Limit'
+     '+' using (prof_m_max):(prof_P_max):(sprintf("[%.0f, %.4f (%.0f min)]", prof_m_max, prof_P_max, prof_W_max)) with labels point pt 7 lc 'dark-green' offset char 0,1 title 'Optimal Limit'

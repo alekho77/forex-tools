@@ -3,10 +3,10 @@
 
 namespace fxlib {
 
-double MaxMargin(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs) {
+double MaxMargin(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs, double tadust) {
   using namespace std;
-  auto delta_1 = [&pcoefs, &dcoefs](double m) { 
-    return (2 * pcoefs.lambda2 * m * m + pcoefs.lambda1 * m - 1) * exp(pcoefs.lambda2 * m * m + pcoefs.lambda1 * m) - dcoefs.T; };
+  auto delta_1 = [&pcoefs, &dcoefs, tadust](double m) { 
+    return tadust * (2 * pcoefs.lambda2 * m * m + pcoefs.lambda1 * m - 1) * exp(pcoefs.lambda2 * m * m + pcoefs.lambda1 * m) - dcoefs.T; };
   mathlib::nonlinear_equations<double(double)> syseq1({delta_1});
   const double m1 = syseq1.solve((sqrt(8 * pcoefs.lambda2 + pcoefs.lambda1 * pcoefs.lambda1) - pcoefs.lambda1) / (4 * pcoefs.lambda2))[0][0];
 

@@ -6,6 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 #include <boost/math/distributions/students_t.hpp>
+#include <boost/optional.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -168,6 +169,8 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   fxmargin_samples losses;
   limits.reserve(seq.candles.size());
   losses.reserve(seq.candles.size());
+  boost::optional<boost::posix_time::ptime> prev_time;
+  double min_adjust = 0;
   size_t curr_idx = 0;
   int progress = 1;
   size_t progress_idx = (progress * seq.candles.size()) / 10;
@@ -176,6 +179,11 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
       cout << piter->time << " processed " << (progress * 10) << "%" << endl;
       progress_idx = (++progress * seq.candles.size()) / 10;
     }
+    if (prev_time.is_initialized()) {
+      const time_duration dt = piter->time - *prev_time;
+      min_adjust += dt.total_seconds() / 60.0;
+    }
+    prev_time = piter->time;
     const double po = profit(*piter, *piter);
     limits.push_back({po, 0});
     losses.push_back({-po, 0});
@@ -202,6 +210,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   double los_var = 0;
   fxlib::MarginStats(fxlib::fxsort(losses), los_mean, los_var);
   const size_t N = limits.size();
+  min_adjust /= (N - 1);
   boost::math::students_t dist(static_cast<double>(N - 1));
   const double T = boost::math::quantile(boost::math::complement(dist, g_alpha / 2));
   const double lim_w = T * lim_var / sqrt(static_cast<double>(N));
@@ -242,10 +251,10 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     if (lim_probab.size() != los_probab.size()) {
       throw logic_error("Size of limits probability is not equal losses one!");
     }
-    const double lim_max_m = fxlib::MaxMargin(lim_pcoefs, lim_dcoefs);
+    const double lim_max_m = fxlib::MaxMargin(lim_pcoefs, lim_dcoefs, min_adjust);
     const double lim_max_probab = fxlib::margin_probab(lim_pcoefs, lim_max_m);
     const double lim_max_durat = fxlib::margin_duration(lim_dcoefs, lim_max_m);
-    const double lim_max_yield = fxlib::margin_yield(lim_pcoefs, lim_dcoefs, lim_max_m);
+    const double lim_max_yield = fxlib::margin_yield(lim_pcoefs, lim_dcoefs, min_adjust, lim_max_m);
     cout << "done" << endl;
 
     boost::filesystem::path disp_file = g_outpath;
@@ -264,6 +273,7 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     fout << "week=" << static_cast<int>(fxlib::fxperiodicity::weekly) << endl;
     fout << "month=" << static_cast<int>(fxlib::fxperiodicity::monthly) << endl;
     fout << "N=" << N << endl;
+    fout << fixed << setprecision(6) << "adjustemnt_coef=" << min_adjust << endl;
     fout << defaultfloat << setprecision(6) << "prof_plam2=" << lim_pcoefs.lambda2 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lim_pcoefs.lambda2)) * g_pip) << endl;
     fout << defaultfloat << setprecision(6) << "prof_plam1=" << lim_pcoefs.lambda1 * g_pip << "  # " << 1.0 / (lim_pcoefs.lambda1 * g_pip) << endl;
     fout << "Pprof(t)=exp(-(prof_plam2*t**2 + prof_plam1*t))" << endl;
@@ -288,8 +298,9 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     fout << "Dprof(t)=prof_dT*(1-exp(-(prof_dlam*t)))" << endl;
     fout << defaultfloat << setprecision(6) << "prof_m_max=" << lim_max_m / g_pip << endl;
     fout << defaultfloat << setprecision(6) << "prof_P_max=" << lim_max_probab << endl;
+    fout << defaultfloat << setprecision(6) << "prof_W_max=" << min_adjust / lim_max_probab << endl;
     fout << defaultfloat << setprecision(6) << "prof_D_max=" << lim_max_durat << endl;
-    fout << defaultfloat << setprecision(6) << "prof_T_max=" << 1 / lim_max_probab + lim_max_durat << endl;
+    fout << defaultfloat << setprecision(6) << "prof_T_max=" << min_adjust / lim_max_probab + lim_max_durat << endl;
     fout << defaultfloat << setprecision(6) << "prof_max=" << lim_max_yield / g_pip << endl;
     fout << defaultfloat << setprecision(6) << "loss_dT=" << los_dcoefs.T << endl;
     fout << defaultfloat << setprecision(6) << "loss_dlam=" << los_dcoefs.lambda * g_pip << endl;
