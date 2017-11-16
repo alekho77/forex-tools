@@ -3,11 +3,12 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 extern boost::filesystem::path g_srcbin;
 extern boost::filesystem::path g_config;
 extern double g_pip;
-extern std::unique_ptr<fxlib::IForecaster> g_forecaster;
+extern std::string g_algname;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm);
 
@@ -23,6 +24,12 @@ int main(int argc, char* argv[]) {
   try {
     if (!vm.count("pip")) {
       throw invalid_argument("Unknown pip size for pair '" + g_srcbin.filename().stem().string() + "'");
+    }
+    boost::property_tree::ptree prop;
+    boost::property_tree::read_json(g_config.string(), prop);
+    auto forecaster = fxlib::CreateForecaster(g_algname, &prop);
+    if (!forecaster) {
+      throw invalid_argument("Could not create algorithm '" + g_algname + "'");
     }
     cout << "Reading " << g_srcbin << "..." << endl;
     ifstream fbin(g_srcbin.string(), ifstream::binary);

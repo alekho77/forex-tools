@@ -8,7 +8,7 @@ namespace fxlib {
 
 class DummyAlgorithm : public IForecaster {
 public:
-  explicit DummyAlgorithm(const ForecastInfo& info);
+  explicit DummyAlgorithm(const boost::property_tree::ptree& settings);
   fxforecast Feed(const fxcandle&) override;
   void Reset() override;
   ForecastInfo Info() const override { return info_; }

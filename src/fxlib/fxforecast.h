@@ -1,6 +1,11 @@
 #pragma once
 
 #include "fxquote.h"
+#include "fxmath.h"
+
+#include <memory>
+
+#include <boost/property_tree/ptree_fwd.hpp>
 
 namespace fxlib {
 
@@ -21,6 +26,8 @@ struct ForecastInfo {
   int window;  //* Window size, in min
   int timeout;  //* Timeout of wait, in min
   double margin;  //* Expected margin, in rate units
+  double probab;
+  double durat;
 };
 
 /// Interface for making forecasts.
@@ -32,7 +39,9 @@ struct IForecaster {
   /// Get info about an algorithm.
   virtual ForecastInfo Info() const = 0;
 
-  virtual ~IForecaster() = 0;
+  virtual ~IForecaster() {}
 };
+
+std::shared_ptr<IForecaster> CreateForecaster(std::string name, const boost::property_tree::ptree* settings = nullptr);
 
 }  // namespace fxlib
