@@ -16,6 +16,7 @@ private:
   const ForecastInfo info_;
   std::mt19937 gen_;
   std::uniform_int_distribution<> dis_;
+  fxcandle last_;
 };
 
 }  // namespace fxlib
