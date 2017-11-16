@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     }
     cout << "Testing algorithm " << g_algname << "..." << endl;
     const fxlib::ForecastInfo info = forecaster->Info();
-    const time_duration wait_operation = seconds(static_cast<long>(60.0 / info.probab));
+    const time_duration wait_operation = seconds(static_cast<long>(info.adust * 60.0 / info.probab));
     const time_duration wait_margin = seconds(static_cast<long>(60.0 * info.durat));
     const time_duration timeout = minutes(info.timeout);
     const time_duration window = minutes(info.window);

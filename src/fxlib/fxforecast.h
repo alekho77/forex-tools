@@ -28,6 +28,7 @@ struct ForecastInfo {
   double margin;  //* Expected margin, in rate units
   double probab;
   double durat;
+  double adust;
 };
 
 /// Interface for making forecasts.

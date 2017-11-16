@@ -13,6 +13,7 @@ ForecastInfo from_cfg(const boost::property_tree::ptree& settings) {
   info.margin = settings.get<double>("margin");
   info.probab = settings.get<double>("probab");
   info.durat = settings.get<double>("durat");
+  info.adust = settings.get<double>("adust");
   return info;
 }
 }
@@ -34,9 +35,8 @@ fxforecast DummyAlgorithm::Feed(const fxcandle& c) {
     for (int i = 0; i < min; i++) {
       val = val || dis_(gen_) == 1;
     }
-    return val ? fxforecast::positive : fxforecast::negative;
   }
-  return fxforecast::unready;
+  return dis_(gen_) == 1 ? fxforecast::positive : fxforecast::negative;
 }
 
 void DummyAlgorithm::Reset() {
