@@ -20,9 +20,9 @@ ForecastInfo from_cfg(const boost::property_tree::ptree& settings) {
 
 DummyAlgorithm::DummyAlgorithm(const boost::property_tree::ptree& settings)
   : info_(from_cfg(settings))
-  , gen_(std::random_device()())
-  , dis_(1, static_cast<int>(1.0 / info_.probab))
+  , gen_(settings.get("seed", std::random_device()()))
   , last_() {
+  dis_ = std::uniform_int_distribution<>(1, static_cast<int>(1.0 / info_.probab));
 }
 
 fxforecast DummyAlgorithm::Feed(const fxcandle& c) {
