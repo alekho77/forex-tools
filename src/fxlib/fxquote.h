@@ -20,6 +20,18 @@ static inline double fxmean(const fxcandle& c) {
   return (c.open + c.close) / 2.0;
 }
 
+static inline double fxprofit(const fxcandle& high, const fxcandle& low) {
+  return fxmean(high) - fxmean(low);
+}
+
+static inline double fxprofit_long(const fxcandle& close, const fxcandle& open) {
+  return fxprofit(close, open);
+}
+
+static inline double fxprofit_short(const fxcandle& close, const fxcandle& open) {
+  return fxprofit(open, close);
+}
+
 enum class fxperiodicity : int {
   tick = 0,
   minutely = 1,

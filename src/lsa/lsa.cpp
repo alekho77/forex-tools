@@ -156,11 +156,11 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
                                       {"w", static_cast<int>(fxlib::fxperiodicity::weekly)}};
   const time_duration timeout = minutes(tm_val * fxperiods.at(what_tm[2]));
   const string positon = boost::algorithm::to_lower_copy(vm["position"].as<string>());
-  double(*profit)(const fxlib::fxcandle& /*current*/, const fxlib::fxcandle& /*open*/);
+  double(*profit)(const fxlib::fxcandle& /*close*/, const fxlib::fxcandle& /*open*/);
   if (positon == "long") {
-    profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return fxlib::fxmean(cc) - fxlib::fxmean(co); };
+    profit = fxlib::fxprofit_long;
   } else if (positon == "short") {
-    profit = [](const fxlib::fxcandle& cc, const fxlib::fxcandle& co) { return fxlib::fxmean(co) - fxlib::fxmean(cc); };
+    profit = fxlib::fxprofit_short;
   } else {
     throw invalid_argument("Wrong position '" + positon + "'");
   }
