@@ -1,0 +1,7 @@
+set terminal windows enhanced
+load file
+set title 'Algorithm errors distribution'
+set xlabel 'Threshold'
+set ylabel 'Error probability'
+plot $Distrib using 1:8 with lines lc 'red' title 'FAR',\
+      '' using 1:9 with lines lc 'violet' title 'FRR'

@@ -105,13 +105,14 @@ int main(int argc, char* argv[]) {
     cout << "Testing algorithm " << g_algname << "..." << endl;
     cout << "Wait of operation " << wait_operation << " with margin wait " << wait_margin << endl;
     cout << "Window " << window << " with timeout " << timeout << endl;
-    boost::optional<boost::posix_time::ptime> last_positive_cast;
-    double actual_wait_operation = 0;
     size_t N = 0;
-    size_t Np = 0;
-    size_t Ngp = 0;
-    size_t Nfa = 0;  // False acceptance
-    size_t Nfr = 0;  // False rejection
+    const size_t distsize = 100;
+    vector<double> actual_wait_operation(distsize);
+    vector<boost::optional<boost::posix_time::ptime>> last_positive_cast(distsize);
+    vector<size_t> Np(distsize + 1);
+    vector<size_t> Ngp(distsize + 1);
+    vector<size_t> Nfa(distsize + 1);  // False acceptance
+    vector<size_t> Nfr(distsize + 1);  // False rejection
     size_t curr_idx = 0;
     int progress = 1;
     size_t progress_idx = (progress * seq.candles.size()) / 10;
@@ -120,37 +121,59 @@ int main(int argc, char* argv[]) {
         cout << piter->time << " processed " << (progress * 10) << "%" << endl;
         progress_idx = (++progress * seq.candles.size()) / 10;
       }
-      const fxlib::fxforecast cast = forecaster->Feed(*piter);
-      if (cast == fxlib::fxforecast::positive) {
-        if (last_positive_cast.is_initialized()) {
-          const time_duration dt = piter->time - *last_positive_cast;
-          actual_wait_operation += dt.total_seconds() / 60.0;
+      const double est = forecaster->Feed(*piter);
+      const bool genuine = CheckPos(piter->time, marks, window);
+      for (size_t i = 0; i <= distsize; i++) {
+        const bool pcast = est >= (double(i) / double(distsize));
+        if (pcast) {
+          if (last_positive_cast[i].is_initialized()) {
+            const time_duration dt = piter->time - *last_positive_cast[i];
+            actual_wait_operation[i] += dt.total_seconds() / 60.0;
+          }
+          last_positive_cast[i] = piter->time;
+          Np[i]++;
         }
-        last_positive_cast = piter->time;
-        Np++;
-      }
-      if (CheckPos(piter->time, marks, window)) {
-        if (cast == fxlib::fxforecast::negative) {
-          Nfr++;
-        }
-        Ngp++;
-      } else {
-        if (cast == fxlib::fxforecast::positive) {
-          Nfa++;
+        if (genuine) {
+          if (!pcast) {
+            Nfr[i]++;
+          }
+          Ngp[i]++;
+        } else {
+          if (pcast) {
+            Nfa[i]++;
+          }
         }
       }
     }
     cout << "Done" << endl;
-    cout << "----------------------------------" << endl;
     cout << "Number of casts: " << N << endl;
-    cout << "Number of positive/negative casts: " << Np << "/" << N - Np << endl;
-    cout << "Number of genuine positive/negative: " << Ngp << "/" << N - Ngp << endl;
-    cout << "False acceptances/False rejection: " << Nfa << "/" << Nfr << endl;
-    const double FAR = Np > 0 ? (double)(Nfa) / (double)(Np) : 0;
-    const double FRR = (N - Np) > 0 ? (double)(Nfr) / (double)(N - Np) : 0;
-    cout << "FAR/FRR: " << defaultfloat << setprecision(6) << FAR << "/" << FRR << endl;
-    actual_wait_operation /= (Np - 1);
-    cout << "Actual wait of operation " << seconds(static_cast<long>(60.0 * actual_wait_operation)) << endl;
+    cout << "----------------------------------" << endl;
+    string out_file = g_algname + "-" + g_srcbin.filename().stem().string() + ".gpl";
+    cout << "Writing " << out_file << "... ";
+    ofstream fout(out_file);
+    if (!fout) {
+      throw ios_base::failure("Could not open '" + out_file + "'");
+    }
+    fout << "N=" << N << endl;
+    fout << "# (1)t   (2)Na   (3)Nr   (4)Ga   (5)Gr   (6)Ea   (7)Er   (8)FAR   (9)FRR    (10)T" << endl;
+    fout << "$Distrib << EOD" << endl;
+    for (size_t i = 0; i <= distsize; i++) {
+      actual_wait_operation[i] /= Np[i] > 1 ? (Np[i] - 1) : 1;
+      const double FAR = (N - Ngp[i]) > 0 ? (double)(Nfa[i]) / (double)(N - Ngp[i]) : 0;
+      const double FRR = Ngp[i] > 0 ? (double)(Nfr[i]) / (double)(Ngp[i]) : 0;
+      fout << setw(6) << setfill(' ') << fixed << setprecision(4) << double(i) / double(distsize) << " ";
+      fout << setw(7) << setfill(' ') << Np[i] << " ";
+      fout << setw(7) << setfill(' ') << N - Np[i] << " ";
+      fout << setw(7) << setfill(' ') << Ngp[i] << " ";
+      fout << setw(7) << setfill(' ') << N - Ngp[i] << " ";
+      fout << setw(7) << setfill(' ') << Nfa[i] << " ";
+      fout << setw(7) << setfill(' ') << Nfr[i] << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(6) << FAR << " ";
+      fout << setw(8) << setfill(' ') << fixed << setprecision(6) << FRR << " ";
+      fout << setw(8) << setfill(' ') << seconds(static_cast<long>(60.0 * actual_wait_operation[i])) << endl;
+    }
+    fout << "EOD" << endl;
+    cout << "done" << endl;
   } catch (const system_error& e) {
     cout << "[ERROR] " << e.what() << endl;
     return e.code().value();

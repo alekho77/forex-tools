@@ -9,12 +9,12 @@
 
 namespace fxlib {
 
-enum class fxforecast : int {
-  unready,   //* An algorithm has not been ready to make forecast, need new data.
-  positive,  //* An algorithm makes a good forecast regarding data that has been already fed.
-  negative,  //* An algorithm makes a bad forecast regarding data that has been already fed.
-  error      //* Data have been incorrect.
-};
+//enum class fxforecast : int {
+//  unready,   //* An algorithm has not been ready to make forecast, need new data.
+//  positive,  //* An algorithm makes a good forecast regarding data that has been already fed.
+//  negative,  //* An algorithm makes a bad forecast regarding data that has been already fed.
+//  error      //* Data have been incorrect.
+//};
 
 enum class fxposition : int {
   fxlong,
@@ -34,7 +34,12 @@ struct ForecastInfo {
 /// Interface for making forecasts.
 struct IForecaster {
   /// Continuously feeding data into an algorithm.
-  virtual fxforecast Feed(const fxcandle&) = 0;
+  /**
+    Return estimation in the range [0,1):
+    0 - means absolutely negative cast;
+    1 - means 100% positive cast.
+  */
+  virtual double Feed(const fxcandle&) = 0;
   /// Reset an algorithm to the begin condition in order to start new feeding.
   virtual void Reset() = 0;
   /// Get info about an algorithm.
