@@ -6,13 +6,15 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/optional.hpp>
 
+#include <algorithm>
+
 using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 using boost::posix_time::seconds;
 
 using candles = decltype(fxlib::fxsequence::candles);
 using fprofit = double (*)(const fxlib::fxcandle& /*close*/, const fxlib::fxcandle& /*open*/);
-using markers = std::vector<candles::const_iterator>;
+using markers = std::vector<boost::posix_time::ptime>;
 
 extern boost::filesystem::path g_srcbin;
 extern boost::filesystem::path g_config;
@@ -36,24 +38,21 @@ markers Mark(const candles& rates, const time_duration& timeout, fprofit profit,
     }
     for (auto iclose = iopen + 1; (iclose < rates.cend()) && (iclose->time - iopen->time <= timeout); ++iclose) {
       if (profit(*iclose, *iopen) >= expected_margin) {
-        marks.push_back(iopen);
+        marks.push_back(iopen->time);
         break;
       }
     }
   }
   cout << "Done" << endl;
-  cout << "----------------------------------" << endl;
   cout << "Geniune positions: " << marks.size() << endl;
+  cout << "----------------------------------" << endl;
   return marks;
 }
 
-bool CheckPos(const candles::const_iterator iter, const candles::const_iterator iend, const time_duration window, const time_duration& timeout, fprofit profit, double expected_margin) {
-  for (candles::const_iterator iopen = iter; (iopen < iend) && (iopen->time - iter->time < window); ++iopen) {
-    for (candles::const_iterator iclose = iopen + 1; (iclose < iend) && (iclose->time - iopen->time <= timeout); ++iclose) {
-      if (profit(*iclose, *iopen) >= expected_margin) {
-        return true;
-      }
-    }
+bool CheckPos(const boost::posix_time::ptime pos, const markers marks, const time_duration window) {
+  auto icandidate = std::lower_bound(marks.cbegin(), marks.cend(), pos);
+  if (icandidate != marks.cend() && *icandidate - pos < window) {
+    return true;
   }
   return false;
 }
@@ -110,6 +109,7 @@ int main(int argc, char* argv[]) {
     double actual_wait_operation = 0;
     size_t N = 0;
     size_t Np = 0;
+    size_t Ngp = 0;
     size_t Nfa = 0;  // False acceptance
     size_t Nfr = 0;  // False rejection
     size_t curr_idx = 0;
@@ -129,20 +129,22 @@ int main(int argc, char* argv[]) {
         last_positive_cast = piter->time;
         Np++;
       }
-      //if (CheckPos(piter, seq.candles.cend(), window, timeout, profit, info.margin)) {
-      //  if (cast == fxlib::fxforecast::negative) {
-      //    Nfr++;
-      //  }
-      //} else {
-      //  if (cast == fxlib::fxforecast::positive) {
-      //    Nfa++;
-      //  }
-      //}
+      if (CheckPos(piter->time, marks, window)) {
+        if (cast == fxlib::fxforecast::negative) {
+          Nfr++;
+        }
+        Ngp++;
+      } else {
+        if (cast == fxlib::fxforecast::positive) {
+          Nfa++;
+        }
+      }
     }
     cout << "Done" << endl;
     cout << "----------------------------------" << endl;
     cout << "Number of casts: " << N << endl;
-    cout << "Number of positive casts: " << Np << endl;
+    cout << "Number of positive/negative casts: " << Np << "/" << N - Np << endl;
+    cout << "Number of genuine positive/negative: " << Ngp << "/" << N - Ngp << endl;
     cout << "False acceptances/False rejection: " << Nfa << "/" << Nfr << endl;
     const double FAR = Np > 0 ? (double)(Nfa) / (double)(Np) : 0;
     const double FRR = (N - Np) > 0 ? (double)(Nfr) / (double)(N - Np) : 0;
