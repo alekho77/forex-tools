@@ -106,11 +106,11 @@ int main(int argc, char* argv[]) {
     cout << "Wait of operation " << wait_operation << " with margin wait " << wait_margin << endl;
     cout << "Window " << window << " with timeout " << timeout << endl;
     size_t N = 0;
+    size_t Ngp = 0;
     const size_t distsize = 100;
     vector<double> actual_wait_operation(distsize);
     vector<boost::optional<boost::posix_time::ptime>> last_positive_cast(distsize);
     vector<size_t> Np(distsize + 1);
-    vector<size_t> Ngp(distsize + 1);
     vector<size_t> Nfa(distsize + 1);  // False acceptance
     vector<size_t> Nfr(distsize + 1);  // False rejection
     size_t curr_idx = 0;
@@ -123,6 +123,9 @@ int main(int argc, char* argv[]) {
       }
       const double est = forecaster->Feed(*piter);
       const bool genuine = CheckPos(piter->time, marks, window);
+      if (genuine) {
+        Ngp++;
+      }
       for (size_t i = 0; i <= distsize; i++) {
         const bool pcast = est >= (double(i) / double(distsize));
         if (pcast) {
@@ -137,7 +140,6 @@ int main(int argc, char* argv[]) {
           if (!pcast) {
             Nfr[i]++;
           }
-          Ngp[i]++;
         } else {
           if (pcast) {
             Nfa[i]++;
@@ -155,17 +157,17 @@ int main(int argc, char* argv[]) {
       throw ios_base::failure("Could not open '" + out_file + "'");
     }
     fout << "N=" << N << endl;
-    fout << "# (1)t   (2)Na   (3)Nr   (4)Ga   (5)Gr   (6)Ea   (7)Er   (8)FAR   (9)FRR    (10)T" << endl;
+    fout << "Nga=" << Ngp << endl;
+    fout << "Ngr=" << N - Ngp << endl;
+    fout << "# (1)t   (2)Na   (3)Nr   (4)Ea   (5)Er   (6)FAR   (7)FRR     (8)T" << endl;
     fout << "$Distrib << EOD" << endl;
     for (size_t i = 0; i <= distsize; i++) {
       actual_wait_operation[i] /= Np[i] > 1 ? (Np[i] - 1) : 1;
-      const double FAR = (N - Ngp[i]) > 0 ? (double)(Nfa[i]) / (double)(N - Ngp[i]) : 0;
-      const double FRR = Ngp[i] > 0 ? (double)(Nfr[i]) / (double)(Ngp[i]) : 0;
+      const double FAR = (N - Ngp) > 0 ? (double)(Nfa[i]) / (double)(N - Ngp) : 0;
+      const double FRR = Ngp > 0 ? (double)(Nfr[i]) / (double)(Ngp) : 0;
       fout << setw(6) << setfill(' ') << fixed << setprecision(4) << double(i) / double(distsize) << " ";
       fout << setw(7) << setfill(' ') << Np[i] << " ";
       fout << setw(7) << setfill(' ') << N - Np[i] << " ";
-      fout << setw(7) << setfill(' ') << Ngp[i] << " ";
-      fout << setw(7) << setfill(' ') << N - Ngp[i] << " ";
       fout << setw(7) << setfill(' ') << Nfa[i] << " ";
       fout << setw(7) << setfill(' ') << Nfr[i] << " ";
       fout << setw(8) << setfill(' ') << fixed << setprecision(6) << FAR << " ";
