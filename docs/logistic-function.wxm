@@ -1,0 +1,35 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 17.05.0 ] */
+/* [wxMaxima: input   start ] */
+s(x,a):=1/(1+exp(-a*x));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d([s(x,1),s(x,1/2),s(x,2)],[x,-10,10]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+solve(s(v,a)=d,v);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+u(d,a):=log(d/(1-d))/a;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+u(0.9,1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+u(0.1,1);
+/* [wxMaxima: input   end   ] */
+
+
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$
