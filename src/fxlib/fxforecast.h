@@ -26,7 +26,6 @@ struct ForecastInfo {
   int window;  //* Window size, in min
   int timeout;  //* Timeout of wait, in min
   double margin;  //* Expected margin, in rate units
-  double probab;
   double durat;
 };
 

@@ -72,9 +72,10 @@ int main(int argc, char* argv[]) {
     const time_duration window = minutes(info.window);
     cout << "Markup of rate sequence... " << endl;
     double time_adjust;
-    auto marks = fxlib::GeniunePositions(seq, timeout, profit, info.margin * g_pip, time_adjust);
+    double probab;
+    auto marks = fxlib::GeniunePositions(seq, timeout, profit, info.margin * g_pip, time_adjust, probab);
+    const time_duration wait_operation = seconds(static_cast<long>(time_adjust * 60.0 / probab));
     cout << "Geniune positions: " << marks.size() << endl;
-    const time_duration wait_operation = seconds(static_cast<long>(time_adjust * 60.0 / info.probab));
     cout << "Testing algorithm " << g_algname << "..." << endl;
     cout << "Wait of operation " << wait_operation << " with margin wait " << wait_margin << endl;
     cout << "Window " << window << " with timeout " << timeout << endl;
