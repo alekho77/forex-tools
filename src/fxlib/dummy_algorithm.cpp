@@ -13,7 +13,6 @@ ForecastInfo from_cfg(const boost::property_tree::ptree& settings) {
   info.margin = settings.get<double>("margin");
   info.probab = settings.get<double>("probab");
   info.durat = settings.get<double>("durat");
-  info.adust = settings.get<double>("adust");
   return info;
 }
 }

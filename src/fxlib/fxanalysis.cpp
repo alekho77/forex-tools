@@ -1,6 +1,8 @@
 #include "fxanalysis.h"
 #include "math/mathlib/nonlsyseq.h"
 
+#include <boost/optional.hpp>
+
 namespace fxlib {
 
 double MaxMargin(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs, double tadust) {
@@ -15,6 +17,30 @@ double MaxMargin(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs, doub
   mathlib::nonlinear_equations<double(double)> syseq2({delta_2});
 
   return syseq2.solve(m1)[0][0];
+}
+
+markers GeniunePositions(const fxsequence& seq, const boost::posix_time::time_duration& timeout, fprofit_t profit, double expected_margin, double& adjust) {
+  using namespace std;
+  fxlib::markers marks;
+  adjust = 0;
+  boost::optional<boost::posix_time::ptime> prev_time;
+  size_t count = 0;
+  const auto& rates = seq.candles;
+  for (auto iopen = rates.cbegin(); (iopen < rates.cend()) && (rates.back().time - iopen->time >= timeout); ++iopen, ++count) {
+    for (auto iclose = iopen + 1; (iclose < rates.cend()) && (iclose->time - iopen->time <= timeout); ++iclose) {
+      if (profit(*iclose, *iopen) >= expected_margin) {
+        marks.emplace_back(iopen->time);
+        break;
+      }
+    }
+    if (prev_time.is_initialized()) {
+      const boost::posix_time::time_duration dt = iopen->time - *prev_time;
+      adjust += dt.total_seconds() / 60.0;
+    }
+    prev_time = iopen->time;
+  }
+  adjust /= (count - 1);
+  return marks;
 }
 
 }  // namespace fxlib

@@ -12,10 +12,6 @@ using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 using boost::posix_time::seconds;
 
-using candles = decltype(fxlib::fxsequence::candles);
-using fprofit = double (*)(const fxlib::fxcandle& /*close*/, const fxlib::fxcandle& /*open*/);
-using markers = std::vector<boost::posix_time::ptime>;
-
 extern boost::filesystem::path g_srcbin;
 extern boost::filesystem::path g_config;
 extern double g_pip;
@@ -23,33 +19,7 @@ extern std::string g_algname;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm);
 
-markers Mark(const candles& rates, const time_duration& timeout, fprofit profit, double expected_margin, double probab) {
-  using namespace std;
-  markers marks;
-  marks.reserve(static_cast<size_t>(probab * rates.size() + 0.5));
-  cout << "Markup of rate sequence..." << endl;
-  size_t curr_idx = 0;
-  int progress = 1;
-  size_t progress_idx = (progress * rates.size()) / 10;
-  for (auto iopen = rates.cbegin(); (iopen < rates.cend()) && (rates.back().time - iopen->time >= timeout); ++iopen, ++curr_idx) {
-    if (curr_idx == progress_idx) {
-      cout << iopen->time << " processed " << (progress * 10) << "%" << endl;
-      progress_idx = (++progress * rates.size()) / 10;
-    }
-    for (auto iclose = iopen + 1; (iclose < rates.cend()) && (iclose->time - iopen->time <= timeout); ++iclose) {
-      if (profit(*iclose, *iopen) >= expected_margin) {
-        marks.push_back(iopen->time);
-        break;
-      }
-    }
-  }
-  cout << "Done" << endl;
-  cout << "Geniune positions: " << marks.size() << endl;
-  cout << "----------------------------------" << endl;
-  return marks;
-}
-
-bool CheckPos(const boost::posix_time::ptime pos, const markers marks, const time_duration window) {
+bool CheckPos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const time_duration window) {
   auto icandidate = std::lower_bound(marks.cbegin(), marks.cend(), pos);
   if (icandidate != marks.cend() && *icandidate - pos < window) {
     return true;
@@ -96,12 +66,15 @@ int main(int argc, char* argv[]) {
       throw logic_error("No data was found in sequence");
     }
     const fxlib::ForecastInfo info = forecaster->Info();
-    fprofit profit = info.position == fxlib::fxposition::fxlong ? fxlib::fxprofit_long : fxlib::fxprofit_short;
-    const time_duration wait_operation = seconds(static_cast<long>(info.adust * 60.0 / info.probab));
+    fxlib::fprofit_t profit = info.position == fxlib::fxposition::fxlong ? fxlib::fxprofit_long : fxlib::fxprofit_short;
     const time_duration wait_margin = seconds(static_cast<long>(60.0 * info.durat));
     const time_duration timeout = minutes(info.timeout);
     const time_duration window = minutes(info.window);
-    auto marks = Mark(seq.candles, timeout, profit, info.margin * g_pip, info.probab);
+    cout << "Markup of rate sequence... " << endl;
+    double time_adjust;
+    auto marks = fxlib::GeniunePositions(seq, timeout, profit, info.margin * g_pip, time_adjust);
+    cout << "Geniune positions: " << marks.size() << endl;
+    const time_duration wait_operation = seconds(static_cast<long>(time_adjust * 60.0 / info.probab));
     cout << "Testing algorithm " << g_algname << "..." << endl;
     cout << "Wait of operation " << wait_operation << " with margin wait " << wait_margin << endl;
     cout << "Window " << window << " with timeout " << timeout << endl;

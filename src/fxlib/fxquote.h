@@ -32,6 +32,8 @@ static inline double fxprofit_short(const fxcandle& close, const fxcandle& open)
   return fxprofit(open, close);
 }
 
+using fprofit_t = double(*)(const fxlib::fxcandle& /*close*/, const fxlib::fxcandle& /*open*/);
+
 enum class fxperiodicity : int {
   tick = 0,
   minutely = 1,
