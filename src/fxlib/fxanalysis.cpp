@@ -19,16 +19,20 @@ double MaxMargin(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs, doub
   return syseq2.solve(m1)[0][0];
 }
 
-markers GeniunePositions(const fxsequence& seq, const boost::posix_time::time_duration& timeout, fprofit_t profit, double expected_margin, double& adjust, double& probab) {
+markers GeniunePositions(const fxsequence& seq, const boost::posix_time::time_duration& timeout, fprofit_t profit, double expected_margin,
+                         double& adjust, double& probab, double& durat) {
   using namespace std;
   fxlib::markers marks;
   adjust = 0;
+  durat = 0;
   boost::optional<boost::posix_time::ptime> prev_time;
   size_t count = 0;
   const auto& rates = seq.candles;
   for (auto iopen = rates.cbegin(); (iopen < rates.cend()) && (rates.back().time - iopen->time >= timeout); ++iopen, ++count) {
     for (auto iclose = iopen + 1; (iclose < rates.cend()) && (iclose->time - iopen->time <= timeout); ++iclose) {
       if (profit(*iclose, *iopen) >= expected_margin) {
+        const boost::posix_time::time_duration dt = iclose->time - iopen->time;
+        durat += dt.total_seconds() / 60.0;
         marks.emplace_back(iopen->time);
         break;
       }
@@ -39,7 +43,8 @@ markers GeniunePositions(const fxsequence& seq, const boost::posix_time::time_du
     }
     prev_time = iopen->time;
   }
-  adjust /= (count - 1);
+  adjust /= count > 1 ? (count - 1) : 1;
+  durat /= marks.empty() ? 1 : marks.size();
   probab = double(marks.size()) / double(count);
   return marks;
 }

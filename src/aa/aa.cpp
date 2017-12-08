@@ -67,17 +67,18 @@ int main(int argc, char* argv[]) {
     }
     const fxlib::ForecastInfo info = forecaster->Info();
     fxlib::fprofit_t profit = info.position == fxlib::fxposition::fxlong ? fxlib::fxprofit_long : fxlib::fxprofit_short;
-    const time_duration wait_margin = seconds(static_cast<long>(60.0 * info.durat));
     const time_duration timeout = minutes(info.timeout);
     const time_duration window = minutes(info.window);
     cout << "Markup of rate sequence... " << endl;
     double time_adjust;
     double probab;
-    auto marks = fxlib::GeniunePositions(seq, timeout, profit, info.margin * g_pip, time_adjust, probab);
+    double durat;
+    auto marks = fxlib::GeniunePositions(seq, timeout, profit, info.margin * g_pip, time_adjust, probab, durat);
     const time_duration wait_operation = seconds(static_cast<long>(time_adjust * 60.0 / probab));
+    const time_duration wait_margin = seconds(static_cast<long>(60.0 * durat));
     cout << "Geniune positions: " << marks.size() << endl;
     cout << "Testing algorithm " << g_algname << "..." << endl;
-    cout << "Wait of operation " << wait_operation << " with margin wait " << wait_margin << endl;
+    cout << "Actual wait of operation " << wait_operation << " with margin wait " << wait_margin << endl;
     cout << "Window " << window << " with timeout " << timeout << endl;
     size_t N = 0;
     size_t Ngp = 0;

@@ -11,7 +11,6 @@ ForecastInfo from_cfg(const boost::property_tree::ptree& settings) {
   info.window = settings.get<int>("window");
   info.timeout = settings.get<int>("timeout");
   info.margin = settings.get<double>("margin");
-  info.durat = settings.get<double>("durat");
   return info;
 }
 }
