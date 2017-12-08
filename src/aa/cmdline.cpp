@@ -8,6 +8,7 @@ double g_pip = 0.0001;
 std::string g_algname;
 bool g_analyze_mode = false;
 bool g_learn_mode = false;
+size_t g_distr_size = 100;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   using namespace std;
@@ -25,7 +26,8 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
       [](const string& cfgname) { g_config = boost::filesystem::canonical(cfgname); }), "Path to algorithm configuration file.");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
-    ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.");
+    ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
+    ("distsize,d", value<size_t>(&g_distr_size)->default_value(100)->value_name("size"), "Number of intervals to build a distribution.");
   const auto list_desc = {basic_desc, generic_desc, additional_desc};
   try {
     options_description desc;
