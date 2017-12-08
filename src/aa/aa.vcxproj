@@ -138,6 +138,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="aa.cpp" />
+    <ClCompile Include="analyzing.cpp" />
     <ClCompile Include="cmdline.cpp" />
   </ItemGroup>
   <ItemGroup>

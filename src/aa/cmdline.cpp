@@ -6,17 +6,21 @@ boost::filesystem::path g_srcbin;
 boost::filesystem::path g_config;
 double g_pip = 0.0001;
 std::string g_algname;
+bool g_analyze_mode = false;
+bool g_learn_mode = false;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   using namespace std;
   options_description basic_desc("Basic options", 200);
   basic_desc.add_options()
     ("help,h", "Show help");
-  options_description generic_desc("Generic analyze options", 200);
+  options_description generic_desc("Generic options", 200);
   generic_desc.add_options()
+    ("analyze,a", bool_switch(&g_analyze_mode), "Analyze the algorithm.")
+    ("learning,l", bool_switch(&g_learn_mode), "Learn the algorithm.")
     ("source,s", value<string>()->required()->value_name("pair-bin")->notifier(
       [](const string& srcname) { g_srcbin = boost::filesystem::canonical(srcname); }), "Path to compiled (binary) quotes.")
-      ("algorithm,a", value<string>(&g_algname)->required()->value_name("name"), "Name of algorithm to analyze.")
+    ("name,n", value<string>(&g_algname)->required()->value_name("name"), "Name of algorithm to analyze or learn.")
     ("config,c", value<string>()->required()->value_name("config")->notifier(
       [](const string& cfgname) { g_config = boost::filesystem::canonical(cfgname); }), "Path to algorithm configuration file.");
   options_description additional_desc("Additional options", 200);
@@ -31,6 +35,9 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     if (vm.count("help")) {
       cout << list_desc;
       return false;
+    }
+    if (!g_analyze_mode && !g_learn_mode) {
+      throw invalid_argument("The mode should be defined (analyzing or learning)");
     }
   } catch (const exception& e) {
     cout << "[ERROR] Command line: " << e.what() << endl;
