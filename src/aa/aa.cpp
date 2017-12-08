@@ -12,6 +12,7 @@ extern bool g_learn_mode;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm);
 void Analyze(const boost::property_tree::ptree& prop, const fxlib::fxsequence seq);
+void Learning(const boost::property_tree::ptree& prop, const fxlib::fxsequence seq);
 
 int main(int argc, char* argv[]) {
   using namespace std;
@@ -50,6 +51,8 @@ int main(int argc, char* argv[]) {
     boost::property_tree::read_json(g_config.string(), prop);
     if (g_analyze_mode) {
       Analyze(prop, seq);
+    } else if (g_learn_mode) {
+      Learning(prop, seq);
     }
 
   } catch (const system_error& e) {

@@ -140,6 +140,7 @@
     <ClCompile Include="aa.cpp" />
     <ClCompile Include="analyzing.cpp" />
     <ClCompile Include="cmdline.cpp" />
+    <ClCompile Include="learning.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\fxlib\fxlib.vcxproj">
