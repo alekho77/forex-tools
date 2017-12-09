@@ -147,6 +147,7 @@
     <ClInclude Include="helpers\fxtime_conversion.h" />
     <ClInclude Include="helpers\fxtime_serializable.h" />
     <ClInclude Include="helpers\string_conversion.h" />
+    <ClInclude Include="laf_algorithm.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dummy_algorithm.cpp" />
@@ -157,6 +158,7 @@
     <ClCompile Include="fxmath.cpp" />
     <ClCompile Include="fxquote.cpp" />
     <ClCompile Include="fxtime.cpp" />
+    <ClCompile Include="laf_algorithm.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
