@@ -23,13 +23,12 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    if (!vm.count("pip")) {
-      throw invalid_argument("Unknown pip size");
-    }
-
     boost::property_tree::ptree prop;
     boost::property_tree::read_json(g_config.string(), prop);
     if (g_analyze_mode) {
+      if (!vm.count("pip")) {
+        throw invalid_argument("Unknown pip size");
+      }
       Analyze(prop);
     } else if (g_learn_mode) {
       Learning(prop);

@@ -3,6 +3,7 @@
 #include <boost/filesystem.hpp>
 
 boost::filesystem::path g_srcbin;
+boost::filesystem::path g_outbin;
 boost::filesystem::path g_config;
 double g_pip = 0.0001;
 std::string g_algname;
@@ -37,7 +38,9 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   options_description markup_desc("Marking-up options", 200);
   markup_desc.add_options()
     ("source,s", value<string>()->required()->value_name("bin")->notifier(
-      [](const string& srcname) { g_srcbin = boost::filesystem::canonical(srcname); }), "Path to source binary quotes.");
+      [](const string& srcname) { g_srcbin = boost::filesystem::canonical(srcname); }), "Path to source binary quotes.")
+    ("out,o", value<string>()->required()->value_name("[filename]")->implicit_value("")->notifier(
+      [](const string& outname) { g_outbin = boost::filesystem::canonical(outname); }), "File to write training set.");
   options_description train_desc("Training options", 200);
   train_desc.add_options()
     ("source,s", value<string>()->required()->value_name("bin")->notifier(

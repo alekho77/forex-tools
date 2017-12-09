@@ -25,11 +25,11 @@ bool CheckPos(const boost::posix_time::ptime pos, const fxlib::markers& marks, c
 
 void Analyze(const boost::property_tree::ptree& prop) {
   using namespace std;
-  const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
   auto forecaster = fxlib::CreateForecaster(g_algname, &prop);
   if (!forecaster) {
     throw invalid_argument("Could not create algorithm '" + g_algname + "'");
   }
+  const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
   const fxlib::ForecastInfo info = forecaster->Info();
   fxlib::fprofit_t profit = info.position == fxlib::fxposition::fxlong ? fxlib::fxprofit_long : fxlib::fxprofit_short;
   const time_duration timeout = minutes(info.timeout);

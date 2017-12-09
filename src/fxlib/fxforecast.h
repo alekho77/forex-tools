@@ -45,6 +45,11 @@ struct IForecaster {
   virtual ~IForecaster() {}
 };
 
+struct ITrainer {
+  virtual std::vector<double> PrepareTraningSet(const fxsequence&) const = 0;
+};
+
 std::shared_ptr<IForecaster> CreateForecaster(std::string name, const boost::property_tree::ptree* settings = nullptr);
+std::shared_ptr<ITrainer> CreateTrainer(std::string name, const boost::property_tree::ptree* settings = nullptr);
 
 }  // namespace fxlib
