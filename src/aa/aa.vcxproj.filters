@@ -27,5 +27,11 @@
     <ClCompile Include="learning.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="loading.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="markingup.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

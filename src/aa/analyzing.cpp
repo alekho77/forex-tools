@@ -13,6 +13,8 @@ using boost::posix_time::time_duration;
 using boost::posix_time::minutes;
 using boost::posix_time::seconds;
 
+fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin);
+
 bool CheckPos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const time_duration window) {
   auto icandidate = std::lower_bound(marks.cbegin(), marks.cend(), pos);
   if (icandidate != marks.cend() && *icandidate - pos < window) {
@@ -21,8 +23,9 @@ bool CheckPos(const boost::posix_time::ptime pos, const fxlib::markers& marks, c
   return false;
 }
 
-void Analyze(const boost::property_tree::ptree& prop, const fxlib::fxsequence seq) {
+void Analyze(const boost::property_tree::ptree& prop) {
   using namespace std;
+  const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
   auto forecaster = fxlib::CreateForecaster(g_algname, &prop);
   if (!forecaster) {
     throw invalid_argument("Could not create algorithm '" + g_algname + "'");

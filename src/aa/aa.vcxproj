@@ -141,6 +141,8 @@
     <ClCompile Include="analyzing.cpp" />
     <ClCompile Include="cmdline.cpp" />
     <ClCompile Include="learning.cpp" />
+    <ClCompile Include="loading.cpp" />
+    <ClCompile Include="markingup.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\fxlib\fxlib.vcxproj">

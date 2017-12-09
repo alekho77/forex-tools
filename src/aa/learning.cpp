@@ -1,9 +1,13 @@
-#include "fxlib/fxlib.h"
-
 #include <boost/property_tree/ptree.hpp>
-#include <boost/optional.hpp>
-#include <boost/filesystem.hpp>
 
-void Learning(const boost::property_tree::ptree& /*prop*/, const fxlib::fxsequence /*seq*/) {
+extern bool g_markup_submode;
+extern bool g_training_submode;
 
+void Markup(const boost::property_tree::ptree& /*prop*/);
+
+void Learning(const boost::property_tree::ptree& prop) {
+  using namespace std;
+  if (g_markup_submode) {
+    Markup(prop);
+  }
 }
