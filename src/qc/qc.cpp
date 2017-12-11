@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
   }
   cout << "Found " << src_list.size() << " source files with total period " << total_period << endl;
 
-  fxlib::fxsequence seq = {fxlib::fxperiodicity::minutely, total_period, {}};
+  fxlib::fxsequence seq = {minutes(1), total_period, {}};
   size_t min_count = 0;
   for (boost::gregorian::day_iterator ditr = {total_period.begin()}; ditr < total_period.end(); ++ditr) {
     const time_period open_period = fxlib::ForexOpenHours(*ditr);

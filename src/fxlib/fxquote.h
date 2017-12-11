@@ -34,18 +34,18 @@ static inline double fxprofit_short(const fxcandle& close, const fxcandle& open)
 
 using fprofit_t = double(*)(const fxlib::fxcandle& /*close*/, const fxlib::fxcandle& /*open*/);
 
-enum class fxperiodicity : int {
-  tick = 0,
-  minutely = 1,
-  hourly = 60 * minutely,
-  daily = 24 * hourly,
-  weekly = 5 * daily + 6 * hourly,
-  monthly = 4 * weekly + 2 * daily
-};
+//enum class fxperiodicity : int {
+//  tick = 0,
+//  minutely = 1,
+//  hourly = 60 * minutely,
+//  daily = 24 * hourly,
+//  weekly = 5 * daily + 6 * hourly,
+//  monthly = 4 * weekly + 2 * daily
+//};
 
 struct fxsequence {
   // Periodicity of quotes in minutes, zero means tick value that is undefined for candles.
-  fxperiodicity periodicity;
+  boost::posix_time::time_duration periodicity;
   // Date of period that may not be equal a time of the first/last candle due a possible gap by a weekend or a holiday.
   boost::gregorian::date_period period;
   std::vector<fxcandle> candles;
@@ -55,4 +55,5 @@ struct fxsequence {
 void WriteSequence(std::ostream& out, const fxsequence& seq) noexcept(false);
 fxsequence ReadSequence(std::istream& in) noexcept(false);
 
+//fxsequence PackSequence(const fxsequence& min_seq, const boost::posix_time::time_duration& new_period);
 }  // namespace fxlib

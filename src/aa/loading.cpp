@@ -13,7 +13,7 @@ fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin) {
   if (!fbin) {
     throw ios_base::failure("Could not read source file'" + srcbin.string() + "'");
   }
-  if (seq.periodicity != fxlib::fxperiodicity::minutely) {
+  if (seq.periodicity != boost::posix_time::minutes(1)) {
     throw logic_error("Wrong sequence periodicity");
   }
   if (seq.period.is_null()) {

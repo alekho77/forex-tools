@@ -258,10 +258,6 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     for (const auto& s: out_strs) {
       fout << "# " << s << endl;
     }
-    fout << "hour=" << static_cast<int>(fxlib::fxperiodicity::hourly) << endl;
-    fout << "day=" << static_cast<int>(fxlib::fxperiodicity::daily) << endl;
-    fout << "week=" << static_cast<int>(fxlib::fxperiodicity::weekly) << endl;
-    fout << "month=" << static_cast<int>(fxlib::fxperiodicity::monthly) << endl;
     fout << "N=" << N << endl;
     fout << fixed << setprecision(6) << "adjustemnt_coef=" << min_adjust << endl;
     fout << defaultfloat << setprecision(6) << "prof_plam2=" << lim_pcoefs.lambda2 * g_pip * g_pip << "  # " << 1.0 / (sqrt(abs(lim_pcoefs.lambda2)) * g_pip) << endl;
@@ -345,7 +341,7 @@ int main(int argc, char* argv[]) {
       throw ios_base::failure("Could not read source file'" + g_srcbin.string() + "'");
     }
     fbin.close();
-    if (seq.periodicity != fxlib::fxperiodicity::minutely) {
+    if (seq.periodicity != minutes(1)) {
       throw logic_error("Wrong sequence periodicity");
     }
     if (seq.period.is_null()) {

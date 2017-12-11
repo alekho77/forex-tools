@@ -7,7 +7,7 @@ namespace fxlib {
 void WriteSequence(std::ostream& out, const fxsequence& seq) noexcept(false) {
   using namespace boost::posix_time;
   detail::fxsequence_header_bin header;
-  header.periodicity = static_cast<detail::fxperiodicity_bin>(seq.periodicity);
+  header.periodicity = static_cast<detail::fxperiodicity_bin>(seq.periodicity.total_seconds() / 60);
   header.count = static_cast<uint32_t>(seq.candles.size());
   header.period.start = conversion::from_iso_string(to_iso_string(ptime(seq.period.begin())));
   header.period.end = conversion::from_iso_string(to_iso_string(ptime(seq.period.end())));
@@ -31,7 +31,7 @@ fxsequence ReadSequence(std::istream& in) noexcept(false) {
   detail::fxsequence_header_bin header;
   in >> header;
   if (in) {
-    fxsequence seq = {static_cast<fxperiodicity>(header.periodicity),
+    fxsequence seq = {minutes(header.periodicity),
                       date_period(from_iso_string(conversion::to_iso_string(header.period.start)).date(),
                                   from_iso_string(conversion::to_iso_string(header.period.end)).date()),
                       {}};
@@ -48,7 +48,12 @@ fxsequence ReadSequence(std::istream& in) noexcept(false) {
     }
     return seq;
   }
-  return {fxperiodicity::tick, date_period(date(not_a_date_time), date(not_a_date_time)), {}};
+  return {minutes(0), date_period(date(not_a_date_time), date(not_a_date_time)), {}};
 }
+
+//fxsequence PackSequence(const fxsequence& min_seq, const boost::posix_time::time_duration& new_period) {
+//  
+//  return fxsequence();
+//}
 
 }  // namespace fxlib

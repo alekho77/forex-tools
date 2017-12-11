@@ -20,7 +20,7 @@ using namespace boost::posix_time;
 
 class fxquote_test_fixture : public ::testing::Test {
 protected:
-  const fxsequence corr_sequence = {fxperiodicity::minutely, date_period(date(2015, Jan, 1), days(31)), {
+  const fxsequence corr_sequence = {boost::posix_time::minutes(1), date_period(date(2015, Jan, 1), days(31)), {
                       {ptime(date(2015, Jan, 15), time_duration(15,15,15)), 1.12345, 1.54321, 1.55555, 1.11111, 123},
                       {ptime(date(2015, Jan, 20), time_duration(10,11,22)), 1.54321, 1.12345, 1.55555, 1.11111, 321},
                       {ptime(date(2015, Jan, 25), time_duration(22,33,44)), 1.12345, 1.54321, 1.55555, 1.11111, 123},
@@ -82,7 +82,7 @@ TEST_F(fxquote_test_fixture, fxsequence_serialize) {
     ASSERT_EQ(sizeof(detail::fxsequence_header_bin) + corr_sequence.candles.size() * sizeof(detail::fxcandle_bin), buf.size());
   }
   {
-    fxsequence seq = {fxperiodicity::tick, date_period(date(not_a_date_time), date(not_a_date_time)), {}};
+    fxsequence seq = {boost::posix_time::minutes(0), date_period(date(not_a_date_time), date(not_a_date_time)), {}};
     stream<array_source> in(&*buf.begin(), buf.size());
     ASSERT_NO_THROW(seq = ReadSequence(in));
     ASSERT_FALSE(in.fail());
