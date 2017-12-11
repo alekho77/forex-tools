@@ -1,4 +1,5 @@
 #include "dummy_algorithm.h"
+#include "helpers/string_conversion.h"
 
 #include <boost/property_tree/ptree.hpp>
 
@@ -8,8 +9,8 @@ namespace {
 ForecastInfo from_cfg(const boost::property_tree::ptree& settings) {
   ForecastInfo info{};
   info.position = settings.get<std::string>("position") == "long" ? fxposition::fxlong : fxposition::fxshort;
-  info.window = settings.get<int>("window");
-  info.timeout = settings.get<int>("timeout");
+  info.window = conversion::duration_from_string(settings.get<std::string>("window"));
+  info.timeout = conversion::duration_from_string(settings.get<std::string>("timeout"));
   info.margin = settings.get<double>("margin");
   return info;
 }

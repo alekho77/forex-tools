@@ -32,19 +32,17 @@ void Analyze(const boost::property_tree::ptree& prop) {
   const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
   const fxlib::ForecastInfo info = forecaster->Info();
   fxlib::fprofit_t profit = info.position == fxlib::fxposition::fxlong ? fxlib::fxprofit_long : fxlib::fxprofit_short;
-  const time_duration timeout = minutes(info.timeout);
-  const time_duration window = minutes(info.window);
   cout << "Markup of rate sequence... " << endl;
   double time_adjust;
   double probab;
   double durat;
-  auto marks = fxlib::GeniunePositions(seq, timeout, profit, info.margin * g_pip, time_adjust, probab, durat);
+  auto marks = fxlib::GeniunePositions(seq, info.timeout, profit, info.margin * g_pip, time_adjust, probab, durat);
   const time_duration wait_operation = seconds(static_cast<long>(time_adjust * 60.0 / probab));
   const time_duration wait_margin = seconds(static_cast<long>(60.0 * durat));
   cout << "Geniune positions: " << marks.size() << endl;
   cout << "Testing algorithm " << g_algname << "..." << endl;
   cout << "Actual wait of operation " << wait_operation << " with margin wait " << wait_margin << endl;
-  cout << "Window " << window << " with timeout " << timeout << endl;
+  cout << "Window " << info.window << " with timeout " << info.timeout << endl;
   size_t N = 0;
   size_t Ngp = 0;
   vector<double> actual_wait_operation(g_distr_size);
@@ -55,13 +53,13 @@ void Analyze(const boost::property_tree::ptree& prop) {
   size_t curr_idx = 0;
   int progress = 1;
   size_t progress_idx = (progress * seq.candles.size()) / 10;
-  for (auto piter = seq.candles.begin(); piter < seq.candles.end() && piter->time <= (seq.candles.back().time - timeout - window); ++piter, ++curr_idx, ++N) {
+  for (auto piter = seq.candles.begin(); piter < seq.candles.end() && piter->time <= (seq.candles.back().time - info.timeout - info.window); ++piter, ++curr_idx, ++N) {
     if (curr_idx == progress_idx) {
       cout << piter->time << " processed " << (progress * 10) << "%" << endl;
       progress_idx = (++progress * seq.candles.size()) / 10;
     }
     const double est = forecaster->Feed(*piter);
-    const bool genuine = CheckPos(piter->time, marks, window);
+    const bool genuine = CheckPos(piter->time, marks, info.window);
     if (genuine) {
       Ngp++;
     }

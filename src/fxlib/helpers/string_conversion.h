@@ -2,6 +2,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 
 #include <string>
 #include <algorithm>
@@ -41,5 +42,25 @@ static inline bool try_to_bool(const std::string& str, bool& val) {
   return false;
 }
 
-}  // namespace fxlib
+static inline boost::posix_time::time_duration duration_from_string(const std::string& str) {
+  using namespace boost::posix_time;
+  const boost::regex rx_duration("(\\d+)([mhdw])");
+  boost::smatch what_dur;
+  if (!boost::regex_match(str, what_dur, rx_duration)) {
+    throw std::invalid_argument("Wrong time duration '" + str + "'");
+  }
+  const int dur_val = stoi(what_dur[1]);
+  if (what_dur[2] == "m") {
+    return minutes(dur_val);
+  } else if (what_dur[2] == "h") {
+    return hours(dur_val);
+  } else if (what_dur[2] == "d") {
+    return hours(24 * dur_val);
+  } else if (what_dur[2] == "w") {
+    return hours(7 * 24 * dur_val);
+  }
+  return time_duration{};
+}
+
 }  // namespace conversion
+}  // namespace fxlib

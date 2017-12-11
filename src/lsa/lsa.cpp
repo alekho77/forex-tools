@@ -1,5 +1,6 @@
 #include "fxlib/fxlib.h"
 #include "fxlib/helpers/program_options.h"
+#include "fxlib/helpers/string_conversion.h"
 
 #include <boost/system/error_code.hpp>
 #include <boost/filesystem.hpp>
@@ -143,20 +144,9 @@ std::vector<std::string> PrepareOutputStrings(const size_t N, const std::tuple<d
 
 void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
   using namespace std;
-  const string str_tm = vm["timeout"].as<string>();
-  boost::regex rx_timeout("(\\d+)([mhdw])");
-  boost::smatch what_tm;
-  if (!boost::regex_match(str_tm, what_tm, rx_timeout)) {
-    throw invalid_argument("Wrong timeout '" + str_tm + "'");
-  }
-  const int tm_val = stoi(what_tm[1]);
-  const map<string, int> fxperiods = {{"m", static_cast<int>(fxlib::fxperiodicity::minutely)},
-                                      {"h", static_cast<int>(fxlib::fxperiodicity::hourly)},
-                                      {"d", static_cast<int>(fxlib::fxperiodicity::daily)},
-                                      {"w", static_cast<int>(fxlib::fxperiodicity::weekly)}};
-  const time_duration timeout = minutes(tm_val * fxperiods.at(what_tm[2]));
+  const time_duration timeout = fxlib::conversion::duration_from_string(vm["timeout"].as<string>());
   const string positon = boost::algorithm::to_lower_copy(vm["position"].as<string>());
-  double(*profit)(const fxlib::fxcandle& /*close*/, const fxlib::fxcandle& /*open*/);
+  fxlib::fprofit_t profit;
   if (positon == "long") {
     profit = fxlib::fxprofit_long;
   } else if (positon == "short") {
@@ -258,13 +248,13 @@ void QuickAnalyze(const variables_map& vm, const fxlib::fxsequence seq) {
     cout << "done" << endl;
 
     boost::filesystem::path disp_file = g_outpath;
-    disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + str_tm + ".gpl");
+    disp_file.append(g_srcbin.filename().stem().string() + "-quick-" + positon + "-" + vm["timeout"].as<string>() + ".gpl");
     cout << "Writing " << disp_file << "..." << endl;
     ofstream fout(disp_file.string());
     if (!fout) {
       throw ios_base::failure("Could not open '" + g_outpath.string() + "'");
     }
-    fout << "# Profit limits and stop-losses for " << positon << " positon with " << str_tm << " timeout." << endl;
+    fout << "# Profit limits and stop-losses for " << positon << " positon with " << vm["timeout"].as<string>() << " timeout." << endl;
     for (const auto& s: out_strs) {
       fout << "# " << s << endl;
     }

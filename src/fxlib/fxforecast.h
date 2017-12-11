@@ -23,8 +23,8 @@ enum class fxposition : int {
 
 struct ForecastInfo {
   fxposition position;
-  int window;  //* Window size, in min
-  int timeout;  //* Timeout of wait, in min
+  boost::posix_time::time_duration window;  //* Window size
+  boost::posix_time::time_duration timeout;  //* Timeout of wait
   double margin;  //* Expected margin, in rate units
 };
 
