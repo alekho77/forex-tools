@@ -64,6 +64,8 @@ std::vector<double> LafTrainer::Impl::prepare_training_set(const fxsequence& seq
   double durat;
   auto marks = fxlib::GeniunePositions(seq, cfg_.timeout, cfg_.position == fxposition::fxlong ? fxprofit_long : fxprofit_short, cfg_.margin * cfg_.pip, time_adjust, probab, durat);
   on_preparing("Geniune positions: " + std::to_string(marks.size()));
+  on_preparing("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step));
+  auto pack_seq = PackSequence(seq, cfg_.step);
   return std::vector<double>();
 }
 

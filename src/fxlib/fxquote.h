@@ -55,5 +55,5 @@ struct fxsequence {
 void WriteSequence(std::ostream& out, const fxsequence& seq) noexcept(false);
 fxsequence ReadSequence(std::istream& in) noexcept(false);
 
-//fxsequence PackSequence(const fxsequence& min_seq, const boost::posix_time::time_duration& new_period);
+fxsequence PackSequence(const fxsequence& min_seq, const boost::posix_time::time_duration& new_period);
 }  // namespace fxlib
