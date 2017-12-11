@@ -25,7 +25,7 @@ bool CheckPos(const boost::posix_time::ptime pos, const fxlib::markers& marks, c
 
 void Analyze(const boost::property_tree::ptree& prop) {
   using namespace std;
-  auto forecaster = fxlib::CreateForecaster(g_algname, &prop);
+  auto forecaster = fxlib::CreateForecaster(g_algname, prop);
   if (!forecaster) {
     throw invalid_argument("Could not create algorithm '" + g_algname + "'");
   }

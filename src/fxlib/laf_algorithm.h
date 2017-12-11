@@ -6,17 +6,18 @@
 
 #include "fxforecast.h"
 
-namespace fxlib {
+#include <memory>
 
-class laf_trainer;
+namespace fxlib {
 
 class LafTrainer : public ITrainer {
 public:
   explicit LafTrainer(const boost::property_tree::ptree& settings);
+  ~LafTrainer();
   std::vector<double> PrepareTraningSet(const fxsequence& seq) const override;
 private:
-  laf_trainer* trainer_;
+  class Impl;
+  std::unique_ptr<Impl> impl_;
 };
-
 
 }  // namespace fxlib

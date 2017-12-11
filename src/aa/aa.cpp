@@ -8,6 +8,7 @@
 extern boost::filesystem::path g_config;
 extern bool g_analyze_mode;
 extern bool g_learn_mode;
+extern double g_pip;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm);
 void Analyze(const boost::property_tree::ptree& prop);
@@ -23,12 +24,13 @@ int main(int argc, char* argv[]) {
   }
 
   try {
+    if (!vm.count("pip")) {
+      throw invalid_argument("Unknown pip size");
+    }
     boost::property_tree::ptree prop;
     boost::property_tree::read_json(g_config.string(), prop);
+    prop.add("pip", g_pip);
     if (g_analyze_mode) {
-      if (!vm.count("pip")) {
-        throw invalid_argument("Unknown pip size");
-      }
       Analyze(prop);
     } else if (g_learn_mode) {
       Learning(prop);
