@@ -145,6 +145,7 @@
     <ClCompile Include="learning.cpp" />
     <ClCompile Include="loading.cpp" />
     <ClCompile Include="markingup.cpp" />
+    <ClCompile Include="training.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\fxlib\fxlib.vcxproj">

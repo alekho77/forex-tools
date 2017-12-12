@@ -4,6 +4,7 @@
 
 boost::filesystem::path g_srcbin;
 boost::filesystem::path g_outbin;
+boost::filesystem::path g_outtxt;
 boost::filesystem::path g_config;
 double g_pip = 0.0001;
 std::string g_algname;
@@ -39,12 +40,14 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   markup_desc.add_options()
     ("source,s", value<string>()->required()->value_name("bin")->notifier(
       [](const string& srcname) { g_srcbin = boost::filesystem::canonical(srcname); }), "Path to source binary quotes.")
-    ("out,o", value<string>()->required()->value_name("[filename]")->implicit_value("")->notifier(
-      [](const string& outname) { g_outbin = boost::filesystem::canonical(outname); }), "File to write training set.");
+    ("out,o", value<string>()->required()->value_name("filename")->implicit_value("")->notifier(
+      [](const string& outname) { g_outbin = boost::filesystem::canonical(outname); }), "Binary file to write training set.");
   options_description train_desc("Training options", 200);
   train_desc.add_options()
     ("source,s", value<string>()->required()->value_name("bin")->notifier(
-      [](const string& srcname) { g_srcbin = boost::filesystem::canonical(srcname); }), "Path to binary training set.");
+      [](const string& srcname) { g_srcbin = boost::filesystem::canonical(srcname); }), "Path to binary training set.")
+    ("out,o", value<string>()->value_name("[filename]")->implicit_value("")->notifier(
+      [](const string& outname) { g_outtxt = boost::filesystem::canonical(outname); }), "Text file to write training log.");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
     ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.");

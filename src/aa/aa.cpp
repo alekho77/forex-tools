@@ -12,7 +12,7 @@ extern double g_pip;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm);
 void Analyze(const boost::property_tree::ptree& prop);
-void Learning(const boost::property_tree::ptree& prop);
+void Learning(const boost::property_tree::ptree& prop, bool out);
 
 int main(int argc, char* argv[]) {
   using namespace std;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     if (g_analyze_mode) {
       Analyze(prop);
     } else if (g_learn_mode) {
-      Learning(prop);
+      Learning(prop, !!vm.count("out"));
     }
 
   } catch (const system_error& e) {

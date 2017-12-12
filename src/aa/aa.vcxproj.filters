@@ -33,5 +33,8 @@
     <ClCompile Include="markingup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="training.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
