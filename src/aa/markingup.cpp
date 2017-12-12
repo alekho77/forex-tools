@@ -15,7 +15,7 @@ void Markup(const boost::property_tree::ptree& prop) {
     throw invalid_argument("Could not create algorithm trainer '" + g_algname + "'");
   }
   if (boost::filesystem::is_directory(g_outbin)) {
-    g_outbin.append(g_outbin.filename().string() + "-" + g_algname + "-training.bin");
+    g_outbin.append(g_srcbin.stem().string() + "-" + g_algname + "-training.bin");
   }
   ofstream fbin(g_outbin.string(), ifstream::binary);
   if (!fbin) {
@@ -23,6 +23,5 @@ void Markup(const boost::property_tree::ptree& prop) {
   }
   const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
   trainer->onPreparing.connect([](const std::string& str) { std::cout << str << std::endl; });
-  auto training_set = trainer->PrepareTraningSet(seq);
-  fbin.write(reinterpret_cast<const char*>(training_set.data()), training_set.size() * sizeof(double));
+  trainer->PrepareTraningSet(seq, fbin);
 }

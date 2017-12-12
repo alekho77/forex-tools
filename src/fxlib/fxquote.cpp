@@ -66,23 +66,23 @@ fxsequence PackSequence(const fxsequence& minseq, const boost::posix_time::time_
   if (!minseq.candles.empty()) {
     ptime start = minseq.candles.front().time - minutes(1);  // 00:00 means last quote of previous day.
     if (new_period < hours(1)) {
-      const int minper = new_period.minutes();
+      const auto minper = new_period.minutes();
       if (60 % minper != 0) {
         throw std::logic_error("Periodicity less one hour should divide hour on integer number of portions.");
       }
       time_duration time = start.time_of_day();
-      int mins = (time.minutes() / minper) * minper;
+      auto mins = (time.minutes() / minper) * minper;
       start = ptime(start.date(), time_duration(time.hours(), mins, 0));
     } else if (new_period < hours(24)) {
       if (new_period.total_seconds() % 3600 != 0) {
         throw std::logic_error("Periodicity should be multiple hours.");
       }
-      const int hper = new_period.hours();
+      const auto hper = new_period.hours();
       if (24 % hper != 0) {
         throw std::logic_error("Periodicity less one day should divide 24h on integer number of portions.");
       }
       time_duration time = start.time_of_day();
-      int hs = (time.hours() / hper) * hper;
+      auto hs = (time.hours() / hper) * hper;
       start = ptime(start.date(), time_duration(hs, 0, 0));
     } else {
       throw std::logic_error("Not inplemented!");

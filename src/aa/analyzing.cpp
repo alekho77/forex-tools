@@ -36,7 +36,7 @@ void Analyze(const boost::property_tree::ptree& prop) {
   double time_adjust;
   double probab;
   double durat;
-  auto marks = fxlib::GeniunePositions(seq, info.timeout, profit, info.margin * g_pip, time_adjust, probab, durat);
+  auto marks = fxlib::GenuinePositions(seq, info.timeout, profit, info.margin * g_pip, time_adjust, probab, durat);
   const time_duration wait_operation = seconds(static_cast<long>(time_adjust * 60.0 / probab));
   const time_duration wait_margin = seconds(static_cast<long>(60.0 * durat));
   cout << "Geniune positions: " << marks.size() << endl;

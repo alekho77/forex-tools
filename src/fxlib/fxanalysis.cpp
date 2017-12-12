@@ -19,7 +19,7 @@ double MaxMargin(const fxprobab_coefs& pcoefs, const fxdurat_coefs& dcoefs, doub
   return syseq2.solve(m1)[0][0];
 }
 
-markers GeniunePositions(const fxsequence& seq, const boost::posix_time::time_duration& timeout, fprofit_t profit, double expected_margin,
+markers GenuinePositions(const fxsequence& seq, const boost::posix_time::time_duration& timeout, fprofit_t profit, double expected_margin,
                          double& adjust, double& probab, double& durat) {
   using namespace std;
   fxlib::markers marks;

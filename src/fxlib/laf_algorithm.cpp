@@ -36,10 +36,12 @@ laf_trainer_cfg from_cfg(const boost::property_tree::ptree& settings) {
 class LafTrainer::Impl {
 public:
   Impl(const boost::property_tree::ptree& settings);
-  std::vector<double> prepare_training_set(const fxsequence& seq) const;
+  void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
 
   boost::signals2::signal<void(const std::string&)> on_preparing;
 private:
+  bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
+
   const laf_trainer_cfg cfg_;
 };
 
@@ -49,24 +51,50 @@ LafTrainer::LafTrainer(const boost::property_tree::ptree& settings) : impl_(std:
 
 LafTrainer::~LafTrainer() = default;
 
-std::vector<double> LafTrainer::PrepareTraningSet(const fxsequence& seq) const {
-  return impl_->prepare_training_set(seq);
+void LafTrainer::PrepareTraningSet(const fxsequence& seq, std::ostream& out) const {
+  impl_->prepare_training_set(seq, out);
 }
 
 LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings)
   : cfg_(from_cfg(settings)) {
 }
 
-std::vector<double> LafTrainer::Impl::prepare_training_set(const fxsequence& seq) const {
+void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream& out) const {
   on_preparing("Estimating genuine positions...");
   double time_adjust;
   double probab;
   double durat;
-  auto marks = fxlib::GeniunePositions(seq, cfg_.timeout, cfg_.position == fxposition::fxlong ? fxprofit_long : fxprofit_short, cfg_.margin * cfg_.pip, time_adjust, probab, durat);
-  on_preparing("Geniune positions: " + std::to_string(marks.size()));
+  auto marks = fxlib::GenuinePositions(seq, cfg_.timeout, cfg_.position == fxposition::fxlong ? fxprofit_long : fxprofit_short, cfg_.margin * cfg_.pip, time_adjust, probab, durat);
+  on_preparing("Genuine positions: " + std::to_string(marks.size()));
   on_preparing("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step));
-  auto pack_seq = PackSequence(seq, cfg_.step);
-  return std::vector<double>();
+  const auto pack_seq = PackSequence(seq, cfg_.step);
+  on_preparing("New size of the sequence: " + std::to_string(pack_seq.candles.size()));
+  if (pack_seq.candles.size() > cfg_.inputs) {
+    size_t count = 0;
+    size_t positive_count = 0;
+    for (auto iter = pack_seq.candles.cbegin() + (cfg_.inputs - 1); iter < pack_seq.candles.cend(); ++iter, ++count) {
+      for (auto aux_iter = iter - (cfg_.inputs - 1); aux_iter <= iter; ++aux_iter) {
+        out << fxmean(*aux_iter);
+      }
+      double genuine_out = 0.0;
+      if (check_pos(iter->time, marks, cfg_.window)) {
+        positive_count++;
+        genuine_out = 1.0;
+      }
+      out << genuine_out;
+    }
+    on_preparing("Prepared " + std::to_string(count) + " training samples including " + std::to_string(positive_count) + " positive");
+  } else {
+    throw std::logic_error("The size of packed sequence is too small.");
+  }
+}
+
+bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {
+  auto icandidate = std::lower_bound(marks.cbegin(), marks.cend(), pos);
+  if (icandidate != marks.cend() && *icandidate - pos < window) {
+    return true;
+  }
+  return false;
 }
 
 }  // namespace fxlib
