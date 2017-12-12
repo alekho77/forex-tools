@@ -60,14 +60,41 @@ public:
   void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
   void load_training_set(std::istream& in);
   void train();
+  void result(boost::property_tree::ptree& settings) const;
 
 private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
 
+  template <size_t L>
+  void save_layer(boost::property_tree::ptree& settings) const {
+    using Layer = mathlib::network_layer_t<L, Network>;
+    //const std::string layer_path = "network.layer_" + std::to_string(L);
+    //settings.put(layer_path, "");
+    (save_neurons<Layer>(network_))(settings);
+    save_layer<L + 1>(settings);
+  }
+  template<>
+  void save_layer<Network::num_layers>(boost::property_tree::ptree&) const {}
+
+  template <typename Layer>
+  struct save_neurons {
+    save_neurons(const Network& net) : network_(net) {}
+    void operator ()(boost::property_tree::ptree& settings) const {
+      save_neuron<0>(settings);
+    }
+    template <size_t N>
+    void save_neuron(boost::property_tree::ptree& settings) const {
+      save_neuron<N + 1>(settings);
+    }
+    template <>
+    void save_neuron<std::tuple_size<Layer>::value>(boost::property_tree::ptree&) const {}
+    const Network& network_;
+  };
+
   const laf_trainer_cfg cfg_;
   std::ostream& headline_;
   std::ostream& log_;
-  Network nework_;
+  Network network_;
   Trainer trainer_;
 };
 
@@ -89,11 +116,15 @@ void LafTrainer::Train() {
   impl_->train();
 }
 
+void LafTrainer::SaveResult(boost::property_tree::ptree & settings) const {
+  impl_->result(settings);
+}
+
 LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings, std::ostream& headline, std::ostream& log)
   : cfg_(from_cfg(settings))
   , headline_(headline)
   , log_(log)
-  , trainer_(nework_) {
+  , trainer_(network_) {
 }
 
 void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream& out) const {
@@ -157,6 +188,11 @@ void LafTrainer::Impl::train() {
     headline_ << "Mean errors for epoch: [" << get<0>(sum_err) << ", " << get<1>(sum_err) << "]" << endl;
     headline_ << "----------------------------------" << endl;
   }
+}
+
+void LafTrainer::Impl::result(boost::property_tree::ptree& settings) const {
+  settings.erase("network");
+  save_layer<0>(settings);
 }
 
 bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {

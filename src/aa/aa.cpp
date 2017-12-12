@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     }
     boost::property_tree::ptree prop;
     boost::property_tree::read_json(g_config.string(), prop);
-    prop.add("pip", g_pip);
+    prop.put("pip", g_pip);
     if (g_analyze_mode) {
       Analyze(prop);
     } else if (g_learn_mode) {
