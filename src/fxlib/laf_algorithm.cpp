@@ -109,9 +109,11 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
     size_t count = 0;
     size_t positive_count = 0;
     for (auto iter = pack_seq.candles.cbegin() + (cfg_.inputs - 1); iter < pack_seq.candles.cend(); ++iter, ++count) {
+      log_ << setw(6) << count;
       for (auto aux_iter = iter - (cfg_.inputs - 1); aux_iter <= iter; ++aux_iter) {
         const double val = fxmean(*aux_iter);
         out.write(reinterpret_cast<const char*>(&val), sizeof(val));
+        log_ << setw(10) << val;
       }
       double genuine_out = 0.0;
       if (check_pos(iter->time, marks, cfg_.window)) {
@@ -119,6 +121,7 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
         genuine_out = 1.0;
       }
       out.write(reinterpret_cast<const char*>(&genuine_out), sizeof(genuine_out));
+      log_ << setw(10) << genuine_out << endl;
     }
     headline_ << "Prepared " << count << " training samples including "  << positive_count << " positive" << endl;
   } else {
@@ -135,9 +138,12 @@ void LafTrainer::Impl::load_training_set(std::istream& in) {
 
 void LafTrainer::Impl::train() {
   using namespace std;
-  headline_ << "Shuffle training set..." << endl;
+  headline_ << "Shuffle training set and weights..." << endl;
   trainer_.shuffle();
+  trainer_.randomize_network();
   headline_ << "Training set with " << cfg_.learning.rate << " learning rate and " << cfg_.learning.momentum << " momentum..." << endl;
+  trainer_.set_learning_rate(cfg_.learning.rate);
+  trainer_.set_momentum(cfg_.learning.momentum);
   trainer_([this](size_t idx, const auto&, const auto&, const auto& errs) {
     this->log_ << setw(8) << idx << setw(20) << get<1>(errs) << endl;
   });
