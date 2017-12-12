@@ -38,7 +38,7 @@ public:
   Impl(const boost::property_tree::ptree& settings);
   void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
 
-  boost::signals2::signal<void(const std::string&)> on_preparing;
+  boost::signals2::signal<void(const std::string&)> on_logging;
 private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
 
@@ -46,7 +46,7 @@ private:
 };
 
 LafTrainer::LafTrainer(const boost::property_tree::ptree& settings) : impl_(std::make_unique<Impl>(settings)) {
-  impl_->on_preparing.connect([this](const std::string& str) { this->onPreparing(str); });
+  impl_->on_logging.connect([this](const std::string& str) { this->onLogging(str); });
 }
 
 LafTrainer::~LafTrainer() = default;
@@ -60,15 +60,15 @@ LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings)
 }
 
 void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream& out) const {
-  on_preparing("Estimating genuine positions...");
+  on_logging("Estimating genuine positions...");
   double time_adjust;
   double probab;
   double durat;
   auto marks = fxlib::GenuinePositions(seq, cfg_.timeout, cfg_.position == fxposition::fxlong ? fxprofit_long : fxprofit_short, cfg_.margin * cfg_.pip, time_adjust, probab, durat);
-  on_preparing("Genuine positions: " + std::to_string(marks.size()));
-  on_preparing("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step));
+  on_logging("Genuine positions: " + std::to_string(marks.size()));
+  on_logging("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step));
   const auto pack_seq = PackSequence(seq, cfg_.step);
-  on_preparing("New size of the sequence: " + std::to_string(pack_seq.candles.size()));
+  on_logging("New size of the sequence: " + std::to_string(pack_seq.candles.size()));
   if (pack_seq.candles.size() > cfg_.inputs) {
     size_t count = 0;
     size_t positive_count = 0;
@@ -83,7 +83,7 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
       }
       out << genuine_out;
     }
-    on_preparing("Prepared " + std::to_string(count) + " training samples including " + std::to_string(positive_count) + " positive");
+    on_logging("Prepared " + std::to_string(count) + " training samples including " + std::to_string(positive_count) + " positive");
   } else {
     throw std::logic_error("The size of packed sequence is too small.");
   }

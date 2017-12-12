@@ -51,7 +51,7 @@ struct ITrainer {
   virtual void PrepareTraningSet(const fxsequence&, std::ostream&) const = 0;
   virtual ~ITrainer() {}
 
-  boost::signals2::signal<void(const std::string&)> onPreparing;
+  boost::signals2::signal<void(const std::string&)> onLogging;
 };
 
 std::shared_ptr<IForecaster> CreateForecaster(std::string name, const boost::property_tree::ptree& settings);
