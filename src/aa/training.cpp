@@ -24,6 +24,9 @@ void Training(const boost::property_tree::ptree& prop, bool out) {
   if (!trainer) {
     throw invalid_argument("Could not create algorithm trainer '" + g_algname + "'");
   }
-  //const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
-  //trainer->PrepareTraningSet(seq, fbin);
+  ifstream fin(g_srcbin.string(), ifstream::binary);
+  if (!fin) {
+    throw ios_base::failure("Could not open '" + g_srcbin.string() + "'");
+  }
+  trainer->LoadTraningSet(fin);
 }

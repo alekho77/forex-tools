@@ -99,14 +99,15 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
     size_t positive_count = 0;
     for (auto iter = pack_seq.candles.cbegin() + (cfg_.inputs - 1); iter < pack_seq.candles.cend(); ++iter, ++count) {
       for (auto aux_iter = iter - (cfg_.inputs - 1); aux_iter <= iter; ++aux_iter) {
-        out << fxmean(*aux_iter);
+        const double val = fxmean(*aux_iter);
+        out.write(reinterpret_cast<const char*>(&val), sizeof(val));
       }
       double genuine_out = 0.0;
       if (check_pos(iter->time, marks, cfg_.window)) {
         positive_count++;
         genuine_out = 1.0;
       }
-      out << genuine_out;
+      out.write(reinterpret_cast<const char*>(&genuine_out), sizeof(genuine_out));
     }
     headline_ << "Prepared " << count << " training samples including "  << positive_count << " positive" << endl;
   } else {
@@ -114,7 +115,7 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
   }
 }
 
-void LafTrainer::Impl::load_traning_set(std::istream & in) {
+void LafTrainer::Impl::load_traning_set(std::istream& in) {
   using namespace std;
   headline_ << "Loading training set..." << endl;
   size_t samples_number = trainer_.load(in);
