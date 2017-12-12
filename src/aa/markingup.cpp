@@ -10,7 +10,7 @@ fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin);
 
 void Markup(const boost::property_tree::ptree& prop) {
   using namespace std;
-  auto trainer = fxlib::CreateTrainer(g_algname, prop);
+  auto trainer = fxlib::CreateTrainer(g_algname, prop, cout, cout);
   if (!trainer) {
     throw invalid_argument("Could not create algorithm trainer '" + g_algname + "'");
   }
@@ -22,6 +22,5 @@ void Markup(const boost::property_tree::ptree& prop) {
     throw ios_base::failure("Could not open '" + g_outbin.string() + "'");
   }
   const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
-  trainer->onTitling.connect([](const std::string& str) { std::cout << str << std::endl; });
   trainer->PrepareTraningSet(seq, fbin);
 }

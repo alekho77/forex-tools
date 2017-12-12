@@ -8,6 +8,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/regex.hpp>
 
+#include <iomanip>
+
 namespace fxlib {
 
 namespace {
@@ -45,23 +47,23 @@ class LafTrainer::Impl {
   using Trainer = mathlib::training_set<mathlib::bp_trainer, Network>;
 
 public:
-  Impl(const boost::property_tree::ptree& settings);
+  Impl(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
   
   void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
-  void load_traning_set(const std::istream& in);
-
-  boost::signals2::signal<void(const std::string&)> on_titling;
+  void load_traning_set(std::istream& in);
 
 private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
 
   const laf_trainer_cfg cfg_;
+  std::ostream& headline_;
+  std::ostream& log_;
   Network nework_;
   Trainer trainer_;
 };
 
-LafTrainer::LafTrainer(const boost::property_tree::ptree& settings) : impl_(std::make_unique<Impl>(settings)) {
-  impl_->on_titling.connect([this](const std::string& str) { this->onTitling(str); });
+LafTrainer::LafTrainer(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log)
+  : impl_(std::make_unique<Impl>(settings, headline, log)) {
 }
 
 LafTrainer::~LafTrainer() = default;
@@ -70,24 +72,28 @@ void LafTrainer::PrepareTraningSet(const fxsequence& seq, std::ostream& out) con
   impl_->prepare_training_set(seq, out);
 }
 
-void LafTrainer::LoadTraningSet(const std::istream & in) {
+void LafTrainer::LoadTraningSet(std::istream & in) {
   impl_->load_traning_set(in);
 }
 
-LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings)
-  : cfg_(from_cfg(settings)), trainer_(nework_) {
+LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings, std::ostream& headline, std::ostream& log)
+  : cfg_(from_cfg(settings))
+  , headline_(headline)
+  , log_(log)
+  , trainer_(nework_) {
 }
 
 void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream& out) const {
-  on_titling("Estimating genuine positions...");
+  using namespace std;
+  headline_ << "Estimating genuine positions..." << endl;
   double time_adjust;
   double probab;
   double durat;
   auto marks = fxlib::GenuinePositions(seq, cfg_.timeout, cfg_.position == fxposition::fxlong ? fxprofit_long : fxprofit_short, cfg_.margin * cfg_.pip, time_adjust, probab, durat);
-  on_titling("Genuine positions: " + std::to_string(marks.size()));
-  on_titling("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step) + "...");
+  headline_ << "Genuine positions: " << marks.size() << endl;
+  headline_ << "Pack quotes to " << cfg_.step << "..." << endl;
   const auto pack_seq = PackSequence(seq, cfg_.step);
-  on_titling("New size of the sequence: " + std::to_string(pack_seq.candles.size()));
+  headline_ << "New size of the sequence: " << pack_seq.candles.size() << endl;
   if (pack_seq.candles.size() > cfg_.inputs) {
     size_t count = 0;
     size_t positive_count = 0;
@@ -102,16 +108,17 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
       }
       out << genuine_out;
     }
-    on_titling("Prepared " + std::to_string(count) + " training samples including " + std::to_string(positive_count) + " positive");
+    headline_ << "Prepared " << count << " training samples including "  << positive_count << " positive" << endl;
   } else {
     throw std::logic_error("The size of packed sequence is too small.");
   }
 }
 
-void LafTrainer::Impl::load_traning_set(const std::istream & in) {
-  on_titling("Loading training set...");
+void LafTrainer::Impl::load_traning_set(std::istream & in) {
+  using namespace std;
+  headline_ << "Loading training set..." << endl;
   size_t samples_number = trainer_.load(in);
-  on_titling("Loaded ");
+  headline_ << "Loaded " << samples_number << " samples" << endl;
 }
 
 bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {

@@ -10,10 +10,6 @@ extern std::string g_algname;
 
 void Training(const boost::property_tree::ptree& prop, bool out) {
   using namespace std;
-  auto trainer = fxlib::CreateTrainer(g_algname, prop);
-  if (!trainer) {
-    throw invalid_argument("Could not create algorithm trainer '" + g_algname + "'");
-  }
   ofstream fout;
   if (out) {
     if (boost::filesystem::is_directory(g_outtxt)) {
@@ -24,7 +20,10 @@ void Training(const boost::property_tree::ptree& prop, bool out) {
       throw ios_base::failure("Could not open '" + g_outtxt.string() + "'");
     }
   }
+  auto trainer = fxlib::CreateTrainer(g_algname, prop, cout, out ? fout : cout);
+  if (!trainer) {
+    throw invalid_argument("Could not create algorithm trainer '" + g_algname + "'");
+  }
   //const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
-  //trainer->onPreparing.connect([](const std::string& str) { std::cout << str << std::endl; });
   //trainer->PrepareTraningSet(seq, fbin);
 }
