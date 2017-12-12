@@ -22,6 +22,10 @@ struct laf_trainer_cfg {
   double pip;
   int inputs;  //* Number of inputs: 6, 12, 24 ...
   boost::posix_time::time_duration step;  //* Number of minutes that are used for each input.
+  struct {
+    double rate;
+    double momentum;
+  } learning;
 };
 
 laf_trainer_cfg from_cfg(const boost::property_tree::ptree& settings) {
@@ -33,6 +37,8 @@ laf_trainer_cfg from_cfg(const boost::property_tree::ptree& settings) {
   cfg.pip = settings.get<double>("pip");
   cfg.inputs = settings.get<int>("inputs");
   cfg.step = conversion::duration_from_string(settings.get<std::string>("step"));
+  cfg.learning.rate = settings.get<double>("learning.rate");
+  cfg.learning.momentum = settings.get<double>("learning.momentum");
   return cfg;
 }
 
@@ -50,7 +56,8 @@ public:
   Impl(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
   
   void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
-  void load_traning_set(std::istream& in);
+  void load_training_set(std::istream& in);
+  void train();
 
 private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
@@ -68,12 +75,16 @@ LafTrainer::LafTrainer(const boost::property_tree::ptree& settings, std::ostream
 
 LafTrainer::~LafTrainer() = default;
 
-void LafTrainer::PrepareTraningSet(const fxsequence& seq, std::ostream& out) const {
+void LafTrainer::PrepareTrainingSet(const fxsequence& seq, std::ostream& out) const {
   impl_->prepare_training_set(seq, out);
 }
 
-void LafTrainer::LoadTraningSet(std::istream & in) {
-  impl_->load_traning_set(in);
+void LafTrainer::LoadTrainingSet(std::istream & in) {
+  impl_->load_training_set(in);
+}
+
+void LafTrainer::Train() {
+  impl_->train();
 }
 
 LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings, std::ostream& headline, std::ostream& log)
@@ -115,11 +126,21 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
   }
 }
 
-void LafTrainer::Impl::load_traning_set(std::istream& in) {
+void LafTrainer::Impl::load_training_set(std::istream& in) {
   using namespace std;
   headline_ << "Loading training set..." << endl;
   size_t samples_number = trainer_.load(in);
   headline_ << "Loaded " << samples_number << " samples" << endl;
+}
+
+void LafTrainer::Impl::train() {
+  using namespace std;
+  headline_ << "Shuffle training set..." << endl;
+  trainer_.shuffle();
+  headline_ << "Training set with " << cfg_.learning.rate << " learning rate and " << cfg_.learning.momentum << " momentum..." << endl;
+  trainer_([this](size_t idx, const auto&, const auto&, const auto& errs) {
+    this->log_ << setw(8) << idx << setw(20) << get<1>(errs) << endl;
+  });
 }
 
 bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {

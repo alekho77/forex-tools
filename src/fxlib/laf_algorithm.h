@@ -14,8 +14,11 @@ class LafTrainer : public ITrainer {
 public:
   explicit LafTrainer(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
   ~LafTrainer();
-  void PrepareTraningSet(const fxsequence& seq, std::ostream& out) const override;
-  void LoadTraningSet(std::istream& in) override;
+  
+  void PrepareTrainingSet(const fxsequence& seq, std::ostream& out) const override;
+  void LoadTrainingSet(std::istream& in) override;
+  void Train() override;
+
 private:
   class Impl;
   std::unique_ptr<Impl> impl_;

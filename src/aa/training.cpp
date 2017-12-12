@@ -28,5 +28,6 @@ void Training(const boost::property_tree::ptree& prop, bool out) {
   if (!fin) {
     throw ios_base::failure("Could not open '" + g_srcbin.string() + "'");
   }
-  trainer->LoadTraningSet(fin);
+  trainer->LoadTrainingSet(fin);
+  trainer->Train();
 }

@@ -47,8 +47,9 @@ struct IForecaster {
 };
 
 struct ITrainer {
-  virtual void PrepareTraningSet(const fxsequence&, std::ostream&) const = 0;
-  virtual void LoadTraningSet(std::istream&) = 0;
+  virtual void PrepareTrainingSet(const fxsequence&, std::ostream&) const = 0;
+  virtual void LoadTrainingSet(std::istream&) = 0;
+  virtual void Train() = 0;
   virtual ~ITrainer() {}
 };
 
