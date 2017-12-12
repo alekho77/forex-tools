@@ -4,7 +4,7 @@
 #include "fxmath.h"
 
 #include <memory>
-#include <ostream>
+#include <iostream>
 
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <boost/signals2.hpp>
@@ -49,6 +49,7 @@ struct IForecaster {
 
 struct ITrainer {
   virtual void PrepareTraningSet(const fxsequence&, std::ostream&) const = 0;
+  virtual void LoadTraningSet(const std::istream&) = 0;
   virtual ~ITrainer() {}
 
   boost::signals2::signal<void(const std::string&)> onTitling;

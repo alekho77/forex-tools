@@ -48,6 +48,7 @@ public:
   Impl(const boost::property_tree::ptree& settings);
   
   void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
+  void load_traning_set(const std::istream& in);
 
   boost::signals2::signal<void(const std::string&)> on_titling;
 
@@ -69,6 +70,10 @@ void LafTrainer::PrepareTraningSet(const fxsequence& seq, std::ostream& out) con
   impl_->prepare_training_set(seq, out);
 }
 
+void LafTrainer::LoadTraningSet(const std::istream & in) {
+  impl_->load_traning_set(in);
+}
+
 LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings)
   : cfg_(from_cfg(settings)), trainer_(nework_) {
 }
@@ -80,7 +85,7 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
   double durat;
   auto marks = fxlib::GenuinePositions(seq, cfg_.timeout, cfg_.position == fxposition::fxlong ? fxprofit_long : fxprofit_short, cfg_.margin * cfg_.pip, time_adjust, probab, durat);
   on_titling("Genuine positions: " + std::to_string(marks.size()));
-  on_titling("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step));
+  on_titling("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step) + "...");
   const auto pack_seq = PackSequence(seq, cfg_.step);
   on_titling("New size of the sequence: " + std::to_string(pack_seq.candles.size()));
   if (pack_seq.candles.size() > cfg_.inputs) {
@@ -101,6 +106,12 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
   } else {
     throw std::logic_error("The size of packed sequence is too small.");
   }
+}
+
+void LafTrainer::Impl::load_traning_set(const std::istream & in) {
+  on_titling("Loading training set...");
+  size_t samples_number = trainer_.load(in);
+  on_titling("Loaded ");
 }
 
 bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {
