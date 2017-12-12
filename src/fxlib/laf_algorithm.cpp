@@ -23,6 +23,7 @@ struct laf_trainer_cfg {
   int inputs;  //* Number of inputs: 6, 12, 24 ...
   boost::posix_time::time_duration step;  //* Number of minutes that are used for each input.
   struct {
+    int epochs;
     double rate;
     double momentum;
   } learning;
@@ -39,6 +40,7 @@ laf_trainer_cfg from_cfg(const boost::property_tree::ptree& settings) {
   cfg.step = conversion::duration_from_string(settings.get<std::string>("step"));
   cfg.learning.rate = settings.get<double>("learning.rate");
   cfg.learning.momentum = settings.get<double>("learning.momentum");
+  cfg.learning.epochs = settings.get<int>("learning.epochs");
   return cfg;
 }
 
@@ -111,7 +113,7 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
     for (auto iter = pack_seq.candles.cbegin() + (cfg_.inputs - 1); iter < pack_seq.candles.cend(); ++iter, ++count) {
       log_ << setw(6) << count;
       for (auto aux_iter = iter - (cfg_.inputs - 1); aux_iter <= iter; ++aux_iter) {
-        const double val = fxmean(*aux_iter);
+        const double val = fxmean(*aux_iter) / (10000 * cfg_.pip);
         out.write(reinterpret_cast<const char*>(&val), sizeof(val));
         log_ << setw(10) << val;
       }
@@ -138,15 +140,23 @@ void LafTrainer::Impl::load_training_set(std::istream& in) {
 
 void LafTrainer::Impl::train() {
   using namespace std;
-  headline_ << "Shuffle training set and weights..." << endl;
-  trainer_.shuffle();
+  headline_ << "Randomizing weights..." << endl;
   trainer_.randomize_network();
   headline_ << "Training set with " << cfg_.learning.rate << " learning rate and " << cfg_.learning.momentum << " momentum..." << endl;
   trainer_.set_learning_rate(cfg_.learning.rate);
   trainer_.set_momentum(cfg_.learning.momentum);
-  trainer_([this](size_t idx, const auto&, const auto&, const auto& errs) {
-    this->log_ << setw(8) << idx << setw(20) << get<1>(errs) << endl;
-  });
+  headline_ << "Number of epochs " << cfg_.learning.epochs << endl;
+  headline_ << "----------------------------------" << endl;
+  for (int e = 0; e < cfg_.learning.epochs; e++) {
+    headline_ << "Shuffle training set..." << endl;
+    trainer_.shuffle();
+    headline_ << "Epoch " << e + 1 << ", training..." << endl;
+    auto sum_err = trainer_([this](size_t idx, const auto&, const auto&, const auto& errs) {
+                                    this->log_ << setw(8) << idx << setw(15) << get<1>(errs) << endl;
+                                  });
+    headline_ << "Mean errors for epoch: [" << get<0>(sum_err) << ", " << get<1>(sum_err) << "]" << endl;
+    headline_ << "----------------------------------" << endl;
+  }
 }
 
 bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {
