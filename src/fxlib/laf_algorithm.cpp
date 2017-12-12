@@ -2,6 +2,9 @@
 #include "fxanalysis.h"
 #include "helpers/string_conversion.h"
 
+#include "math/mathlib/trainingset.h"
+#include "math/mathlib/bp_trainer.h"
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/regex.hpp>
 
@@ -34,19 +37,30 @@ laf_trainer_cfg from_cfg(const boost::property_tree::ptree& settings) {
 }  // namespace
 
 class LafTrainer::Impl {
+  using InputLayer = mathlib::input_layer<double, 12>;
+  using Neuron = mathlib::neuron<double, 12>;
+  using IndexPack = mathlib::index_pack<11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0>;
+  using Map = mathlib::type_pack<IndexPack>;
+  using Network = mathlib::nnetwork<InputLayer, std::tuple<Neuron>, Map>;
+  using Trainer = mathlib::training_set<mathlib::bp_trainer, Network>;
+
 public:
   Impl(const boost::property_tree::ptree& settings);
+  
   void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
 
-  boost::signals2::signal<void(const std::string&)> on_logging;
+  boost::signals2::signal<void(const std::string&)> on_titling;
+
 private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
 
   const laf_trainer_cfg cfg_;
+  Network nework_;
+  Trainer trainer_;
 };
 
 LafTrainer::LafTrainer(const boost::property_tree::ptree& settings) : impl_(std::make_unique<Impl>(settings)) {
-  impl_->on_logging.connect([this](const std::string& str) { this->onLogging(str); });
+  impl_->on_titling.connect([this](const std::string& str) { this->onTitling(str); });
 }
 
 LafTrainer::~LafTrainer() = default;
@@ -56,19 +70,19 @@ void LafTrainer::PrepareTraningSet(const fxsequence& seq, std::ostream& out) con
 }
 
 LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings)
-  : cfg_(from_cfg(settings)) {
+  : cfg_(from_cfg(settings)), trainer_(nework_) {
 }
 
 void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream& out) const {
-  on_logging("Estimating genuine positions...");
+  on_titling("Estimating genuine positions...");
   double time_adjust;
   double probab;
   double durat;
   auto marks = fxlib::GenuinePositions(seq, cfg_.timeout, cfg_.position == fxposition::fxlong ? fxprofit_long : fxprofit_short, cfg_.margin * cfg_.pip, time_adjust, probab, durat);
-  on_logging("Genuine positions: " + std::to_string(marks.size()));
-  on_logging("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step));
+  on_titling("Genuine positions: " + std::to_string(marks.size()));
+  on_titling("Pack quotes to " + boost::posix_time::to_simple_string(cfg_.step));
   const auto pack_seq = PackSequence(seq, cfg_.step);
-  on_logging("New size of the sequence: " + std::to_string(pack_seq.candles.size()));
+  on_titling("New size of the sequence: " + std::to_string(pack_seq.candles.size()));
   if (pack_seq.candles.size() > cfg_.inputs) {
     size_t count = 0;
     size_t positive_count = 0;
@@ -83,7 +97,7 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
       }
       out << genuine_out;
     }
-    on_logging("Prepared " + std::to_string(count) + " training samples including " + std::to_string(positive_count) + " positive");
+    on_titling("Prepared " + std::to_string(count) + " training samples including " + std::to_string(positive_count) + " positive");
   } else {
     throw std::logic_error("The size of packed sequence is too small.");
   }

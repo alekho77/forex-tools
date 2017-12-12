@@ -22,6 +22,6 @@ void Markup(const boost::property_tree::ptree& prop) {
     throw ios_base::failure("Could not open '" + g_outbin.string() + "'");
   }
   const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
-  trainer->onLogging.connect([](const std::string& str) { std::cout << str << std::endl; });
+  trainer->onTitling.connect([](const std::string& str) { std::cout << str << std::endl; });
   trainer->PrepareTraningSet(seq, fbin);
 }
