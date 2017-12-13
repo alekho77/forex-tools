@@ -36,6 +36,8 @@ private:
   std::ostream& log_;
   details::laf12_algorithm::Network network_;
   details::laf12_algorithm::Trainer trainer_;
+  double mean_;
+  double var_;
 };
 
 }  // namespace fxlib

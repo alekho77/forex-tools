@@ -37,12 +37,26 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
   const auto pack_seq = PackSequence(seq, cfg_.step);
   headline_ << "New size of the sequence: " << pack_seq.candles.size() << endl;
   if (pack_seq.candles.size() > cfg_.inputs) {
+    double mean = 0;
+    for (const auto& c: pack_seq.candles) {
+      mean += fxmean(c);
+    }
+    mean /= pack_seq.candles.size();
+    double var = 0;
+    for (const auto& c : pack_seq.candles) {
+      const double dv = fxmean(c) - mean;
+      var += dv * dv;
+    }
+    var = std::sqrt(var / (pack_seq.candles.size() - 1));
+    headline_ << "mean: " << mean << ", variance: " << var << endl;
+    out.write(reinterpret_cast<const char*>(&mean), sizeof(mean));
+    out.write(reinterpret_cast<const char*>(&var), sizeof(var));
     size_t count = 0;
     size_t positive_count = 0;
     for (auto iter = pack_seq.candles.cbegin() + (cfg_.inputs - 1); iter < pack_seq.candles.cend(); ++iter, ++count) {
       log_ << setw(6) << count;
       for (auto aux_iter = iter - (cfg_.inputs - 1); aux_iter <= iter; ++aux_iter) {
-        const double val = fxmean(*aux_iter) / (10000 * cfg_.pip);
+        const double val = (fxmean(*aux_iter) - mean) / var;// / (10000 * cfg_.pip);
         out.write(reinterpret_cast<const char*>(&val), sizeof(val));
         log_ << setw(10) << val;
       }
@@ -63,6 +77,9 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
 void LafTrainer::Impl::load_training_set(std::istream& in) {
   using namespace std;
   headline_ << "Loading training set..." << endl;
+  in.read(reinterpret_cast<char*>(&mean_), sizeof(mean_));
+  in.read(reinterpret_cast<char*>(&var_), sizeof(var_));
+  headline_ << "mean: " << mean_ << ", variance: " << var_ << endl;
   size_t samples_number = trainer_.load(in);
   headline_ << "Loaded " << samples_number << " samples" << endl;
 }
@@ -92,6 +109,8 @@ void LafTrainer::Impl::result(boost::property_tree::ptree& settings) const {
   settings.erase("network");
   auto net_params = network_saver<details::laf12_algorithm::Network>(network_)();
   settings.put_child("network", net_params);
+  settings.put("mean", mean_);
+  settings.put("variance", var_);
 }
 
 bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {

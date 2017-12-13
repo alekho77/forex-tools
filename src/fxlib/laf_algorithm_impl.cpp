@@ -16,6 +16,8 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
   cfg.pip = settings.get<double>("pip");
   cfg.inputs = settings.get<int>("inputs");
   cfg.step = conversion::duration_from_string(settings.get<std::string>("step"));
+  cfg.mean = settings.get("mean", 0.0);
+  cfg.var = settings.get("variance", 1.0);
   return cfg;
 }
 
@@ -52,7 +54,7 @@ double LafAlgorithm::Impl::feed(const fxcandle& candle) {
       ++(*time_bound_);
     }
     if (aggr_candle_.is_initialized()) {
-      inputs_[curr_idx_] = fxmean(*aggr_candle_) / (10000 * cfg_.pip);
+      inputs_[curr_idx_] = (fxmean(*aggr_candle_) - cfg_.mean) / cfg_.var; // / (10000 * cfg_.pip);
       ++curr_idx_;
     }
     aggr_candle_ = candle;

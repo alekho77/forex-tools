@@ -16,6 +16,8 @@ struct laf_cfg : ForecastInfo {
   double pip;
   int inputs;  //* Number of inputs: 6, 12, 24 ...
   boost::posix_time::time_duration step;  //* Number of minutes that are used for each input.
+  double mean;
+  double var;
 };
 
 laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings);
