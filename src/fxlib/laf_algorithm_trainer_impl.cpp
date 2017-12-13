@@ -90,7 +90,7 @@ void LafTrainer::Impl::train() {
 
 void LafTrainer::Impl::result(boost::property_tree::ptree& settings) const {
   settings.erase("network");
-  auto net_params = network_saver<Network>(network_)();
+  auto net_params = network_saver<details::laf12_algorithm::Network>(network_)();
   settings.put_child("network", net_params);
 }
 

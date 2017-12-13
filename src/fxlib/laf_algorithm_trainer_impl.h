@@ -5,13 +5,10 @@
 
 #include "fxanalysis.h"
 
-#include "math/mathlib/trainingset.h"
-#include "math/mathlib/bp_trainer.h"
-
 namespace fxlib {
 
 namespace details {
-struct laf_trainer_cfg : details::laf_cfg {
+struct laf_trainer_cfg : laf_cfg {
   struct {
     int epochs;
     double rate;
@@ -23,13 +20,6 @@ laf_trainer_cfg laftrainer_from_ptree(const boost::property_tree::ptree& setting
 }  // namespace details
 
 class LafTrainer::Impl {
-  using InputLayer = mathlib::input_layer<double, 12>;
-  using Neuron = mathlib::neuron<double, 12>;
-  using IndexPack = mathlib::index_pack<11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0>;
-  using Map = mathlib::type_pack<IndexPack>;
-  using Network = mathlib::nnetwork<InputLayer, std::tuple<Neuron>, Map>;
-  using Trainer = mathlib::training_set<mathlib::bp_trainer, Network>;
-
 public:
   Impl(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
 
@@ -44,8 +34,8 @@ private:
   const details::laf_trainer_cfg cfg_;
   std::ostream& headline_;
   std::ostream& log_;
-  Network network_;
-  Trainer trainer_;
+  details::laf12_algorithm::Network network_;
+  details::laf12_algorithm::Trainer trainer_;
 };
 
 }  // namespace fxlib
