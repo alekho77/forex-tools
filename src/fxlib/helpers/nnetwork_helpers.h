@@ -94,5 +94,82 @@ private:
   const Network& network_;
 };
 
+// Restore neural network parameters
+template <typename Network>
+class network_restorer {
+public:
+  network_restorer(Network& net) : network_(net) {}
+
+  void operator ()(const boost::property_tree::ptree& params) {
+    restore_layer<0>(params.get_child("network"));
+  }
+
+private:
+  template <size_t L>
+  void restore_layer(const boost::property_tree::ptree& params) {
+    using Layer = mathlib::network_layer_t<L, Network>;
+    auto layer_params = params.get_child("layer_" + std::to_string(L));
+    (layer_restorer<Layer>(network_.layer<L>()))(layer_params);
+    restore_layer<L + 1>(params);
+  }
+  template <>
+  void restore_layer<Network::num_layers>(const boost::property_tree::ptree&) {}
+
+  template <typename Layer>
+  struct layer_restorer {
+    layer_restorer(Layer& layer) : layer_(layer) {}
+
+    void operator ()(const boost::property_tree::ptree& params) {
+      restore_neuron<0>(params);
+    }
+
+    template <size_t N>
+    void restore_neuron(const boost::property_tree::ptree& params) {
+      using Neuron = std::tuple_element_t<N, Layer>;
+      auto neuron_params = params.get_child("neuron_" + std::to_string(N));
+      (neuron_restorer<Neuron, Neuron::use_bias>(std::get<N>(layer_)))(neuron_params);
+      restore_neuron<N + 1>(params);
+    }
+    template <>
+    void restore_neuron<std::tuple_size<Layer>::value>(const boost::property_tree::ptree&) {}
+
+    Layer& layer_;
+  };
+
+  template <typename Neuron>
+  struct neuron_restorer_base {
+    neuron_restorer_base(Neuron& n) : neuron_(n) {}
+
+    void operator ()(const boost::property_tree::ptree& params) {
+      const auto weights = params.get_child("weights");
+      restore_weight<0>(weights.begin());
+    }
+
+    template <size_t I>
+    void restore_weight(boost::property_tree::ptree::const_iterator iter) {
+      neuron_.set_weight<I>(boost::lexical_cast<double>(iter->second.data()));
+      restore_weight<I + 1>(++iter);
+    }
+    template <>
+    void restore_weight<Neuron::num_synapses>(boost::property_tree::ptree::const_iterator) {}
+
+    Neuron& neuron_;
+  };
+
+  template <typename Neuron, bool use_bias>
+  struct neuron_restorer : neuron_restorer_base<Neuron> {
+    neuron_restorer(Neuron& n) : neuron_restorer_base<Neuron>(n) {}
+    void operator ()(const boost::property_tree::ptree& params) {
+      neuron_restorer_base<Neuron>::operator ()(params);
+      neuron_.set_bias(params.get<double>("bias"));
+    }
+  };
+  template <typename Neuron>
+  struct neuron_restorer<Neuron, false> : neuron_restorer_base<Neuron> {
+    neuron_restorer(Neuron& n) : neuron_restorer_base<Neuron>(n) {}
+  };
+
+  Network& network_;
+};
 
 }  // namespace fxlib

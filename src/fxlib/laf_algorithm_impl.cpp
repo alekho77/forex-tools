@@ -25,6 +25,7 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
 LafAlgorithm::Impl::Impl(const boost::property_tree::ptree& settings)
   : cfg_(details::laf_from_ptree(settings)) {
   inputs_.fill(0);
+  (network_restorer<details::laf12_algorithm::Network>(network_))(settings);
 }
 
 double LafAlgorithm::Impl::feed(const fxcandle& candle) {
