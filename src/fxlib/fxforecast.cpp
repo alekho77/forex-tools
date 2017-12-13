@@ -11,6 +11,8 @@ std::shared_ptr<IForecaster> CreateForecaster(std::string name, const boost::pro
   boost::algorithm::to_lower(name);
   if (name == "dummy") {
     return std::make_shared<DummyAlgorithm>(settings);
+  } if (name == "laf") {
+    return std::make_shared<LafAlgorithm>(settings);
   }
   return std::shared_ptr<IForecaster>();
 }

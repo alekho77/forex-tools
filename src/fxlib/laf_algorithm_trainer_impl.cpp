@@ -5,23 +5,22 @@
 
 namespace fxlib {
 
-LafTrainer::Impl::laf_trainer_cfg LafTrainer::Impl::from_cfg(const boost::property_tree::ptree& settings) {
-  laf_trainer_cfg cfg{};
-  cfg.position = settings.get<std::string>("position") == "long" ? fxposition::fxlong : fxposition::fxshort;
-  cfg.window = conversion::duration_from_string(settings.get<std::string>("window"));
-  cfg.timeout = conversion::duration_from_string(settings.get<std::string>("timeout"));
-  cfg.margin = settings.get<double>("margin");
-  cfg.pip = settings.get<double>("pip");
-  cfg.inputs = settings.get<int>("inputs");
-  cfg.step = conversion::duration_from_string(settings.get<std::string>("step"));
+namespace details {
+
+laf_trainer_cfg laftrainer_from_ptree(const boost::property_tree::ptree& settings) {
+  laf_trainer_cfg cfg;
+  *(laf_cfg*)(&cfg) = laf_from_ptree(settings);
   cfg.learning.rate = settings.get<double>("learning.rate");
   cfg.learning.momentum = settings.get<double>("learning.momentum");
   cfg.learning.epochs = settings.get<int>("learning.epochs");
   return cfg;
 }
 
+}  // namespace details
+
+
 LafTrainer::Impl::Impl(const boost::property_tree::ptree & settings, std::ostream& headline, std::ostream& log)
-  : cfg_(from_cfg(settings))
+  : cfg_(details::laftrainer_from_ptree(settings))
   , headline_(headline)
   , log_(log)
   , trainer_(network_) {}

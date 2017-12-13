@@ -1,6 +1,7 @@
 #pragma once
 
 #include "laf_algorithm.h"
+#include "laf_algorithm_impl.h"
 
 #include "fxanalysis.h"
 
@@ -9,6 +10,18 @@
 
 namespace fxlib {
 
+namespace details {
+struct laf_trainer_cfg : details::laf_cfg {
+  struct {
+    int epochs;
+    double rate;
+    double momentum;
+  } learning;
+};
+
+laf_trainer_cfg laftrainer_from_ptree(const boost::property_tree::ptree& settings);
+}  // namespace details
+
 class LafTrainer::Impl {
   using InputLayer = mathlib::input_layer<double, 12>;
   using Neuron = mathlib::neuron<double, 12>;
@@ -16,23 +29,6 @@ class LafTrainer::Impl {
   using Map = mathlib::type_pack<IndexPack>;
   using Network = mathlib::nnetwork<InputLayer, std::tuple<Neuron>, Map>;
   using Trainer = mathlib::training_set<mathlib::bp_trainer, Network>;
-
-  struct laf_trainer_cfg {
-    fxposition position;
-    boost::posix_time::time_duration window;  //* Window size
-    boost::posix_time::time_duration timeout;  //* Timeout of wait
-    double margin;  //* Expected margin, in rate units
-    double pip;
-    int inputs;  //* Number of inputs: 6, 12, 24 ...
-    boost::posix_time::time_duration step;  //* Number of minutes that are used for each input.
-    struct {
-      int epochs;
-      double rate;
-      double momentum;
-    } learning;
-  };
-
-  static laf_trainer_cfg from_cfg(const boost::property_tree::ptree& settings);
 
 public:
   Impl(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
@@ -45,7 +41,7 @@ public:
 private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
 
-  const laf_trainer_cfg cfg_;
+  const details::laf_trainer_cfg cfg_;
   std::ostream& headline_;
   std::ostream& log_;
   Network network_;

@@ -5,9 +5,9 @@
 
 namespace fxlib {
 
-LafAlgorithm::Impl::Impl(const boost::property_tree::ptree& settings) : cfg_(from_cfg(settings)) {}
+namespace details {
 
-LafAlgorithm::Impl::laf_cfg LafAlgorithm::Impl::from_cfg(const boost::property_tree::ptree& settings) {
+laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
   laf_cfg cfg{};
   cfg.position = settings.get<std::string>("position") == "long" ? fxposition::fxlong : fxposition::fxshort;
   cfg.window = conversion::duration_from_string(settings.get<std::string>("window"));
@@ -18,6 +18,11 @@ LafAlgorithm::Impl::laf_cfg LafAlgorithm::Impl::from_cfg(const boost::property_t
   cfg.step = conversion::duration_from_string(settings.get<std::string>("step"));
   return cfg;
 }
+
+}  // namespace details
+
+
+LafAlgorithm::Impl::Impl(const boost::property_tree::ptree& settings) : cfg_(details::laf_from_ptree(settings)) {}
 
 double LafAlgorithm::Impl::feed(const fxcandle& /*candle*/) {
   return 0;
