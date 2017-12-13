@@ -67,7 +67,7 @@ private:
     template <size_t I>
     void save_weight(boost::property_tree::ptree& params) {
       boost::property_tree::ptree weight;
-      weight.put_value(std::get<I>(neuron_.weights()));
+      weight.put_value(neuron_.weight<I>());
       params.push_back(std::make_pair("", weight));
       save_weight<I + 1>(params);
     }
