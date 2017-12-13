@@ -25,4 +25,15 @@ private:
   std::unique_ptr<Impl> impl_;
 };
 
+class LafAlgorithm : public IForecaster {
+public:
+  explicit LafAlgorithm(const boost::property_tree::ptree& settings);
+  double Feed(const fxcandle&) override;
+  void Reset() override;
+  ForecastInfo Info() const override;
+private:
+  class Impl;
+  std::unique_ptr<Impl> impl_;
+};
+
 }  // namespace fxlib

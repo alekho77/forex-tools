@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\helpers">
+      <UniqueIdentifier>{984f42ef-a765-4c2f-ac30-19e83a593874}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\algorithms">
+      <UniqueIdentifier>{6dc03219-b917-4b98-9bbf-3b1440f9a7f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\algorithms">
+      <UniqueIdentifier>{1eb879d7-b897-40ef-b357-fd9d6fc334e6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fxtime.h">
@@ -30,22 +39,7 @@
     <ClInclude Include="fxmath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="helpers\fxtime_conversion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="helpers\fxtime_serializable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="finam\finam.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="helpers\string_conversion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="helpers\fxquote_serializable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="helpers\program_options.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fxanalysis.h">
@@ -54,11 +48,35 @@
     <ClInclude Include="fxforecast.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="helpers\string_conversion.h">
+      <Filter>Header Files\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\nnetwork_helpers.h">
+      <Filter>Header Files\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\fxquote_serializable.h">
+      <Filter>Header Files\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\fxtime_conversion.h">
+      <Filter>Header Files\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\fxtime_serializable.h">
+      <Filter>Header Files\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\program_options.h">
+      <Filter>Header Files\helpers</Filter>
+    </ClInclude>
     <ClInclude Include="dummy_algorithm.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\algorithms</Filter>
     </ClInclude>
     <ClInclude Include="laf_algorithm.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="laf_algorithm_trainer_impl.h">
+      <Filter>Header Files\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="laf_algorithm_impl.h">
+      <Filter>Header Files\algorithms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -80,14 +98,20 @@
     <ClCompile Include="fxanalysis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dummy_algorithm.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="fxforecast.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dummy_algorithm.cpp">
+      <Filter>Source Files\algorithms</Filter>
+    </ClCompile>
     <ClCompile Include="laf_algorithm.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="laf_algorithm_trainer_impl.cpp">
+      <Filter>Source Files\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="laf_algorithm_impl.cpp">
+      <Filter>Source Files\algorithms</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
