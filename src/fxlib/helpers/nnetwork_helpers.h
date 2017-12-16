@@ -66,9 +66,7 @@ private:
 
     template <size_t I>
     void save_weight(boost::property_tree::ptree& params) {
-      boost::property_tree::ptree weight;
-      weight.put_value(neuron_.weight<I>());
-      params.push_back(std::make_pair("", weight));
+      params.put("weight_" + std::to_string(I), neuron_.weight<I>());
       save_weight<I + 1>(params);
     }
     template <>
@@ -142,16 +140,16 @@ private:
 
     void operator ()(const boost::property_tree::ptree& params) {
       const auto weights = params.get_child("weights");
-      restore_weight<0>(weights.begin());
+      restore_weight<0>(weights);
     }
 
     template <size_t I>
-    void restore_weight(boost::property_tree::ptree::const_iterator iter) {
-      neuron_.set_weight<I>(boost::lexical_cast<double>(iter->second.data()));
-      restore_weight<I + 1>(++iter);
+    void restore_weight(const boost::property_tree::ptree& params) {
+      neuron_.set_weight<I>(params.get<double>("weight_" + std::to_string(I)));
+      restore_weight<I + 1>(params);
     }
     template <>
-    void restore_weight<Neuron::num_synapses>(boost::property_tree::ptree::const_iterator) {}
+    void restore_weight<Neuron::num_synapses>(const boost::property_tree::ptree&) {}
 
     Neuron& neuron_;
   };
