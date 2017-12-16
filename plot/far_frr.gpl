@@ -3,5 +3,7 @@ load file
 set title 'Algorithm errors distribution'
 set xlabel 'Threshold'
 set ylabel 'Error probability'
+set ytics 0.1
+set xtics 0.1
 plot $Distrib using 1:6 with lines lc 'red' title 'FAR',\
       '' using 1:7 with lines lc 'violet' title 'FRR'
