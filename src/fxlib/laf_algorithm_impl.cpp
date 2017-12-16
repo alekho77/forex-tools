@@ -54,7 +54,7 @@ double LafAlgorithm::Impl::feed(const fxcandle& candle) {
       ++(*time_bound_);
     }
     if (aggr_candle_.is_initialized()) {
-      inputs_[curr_idx_] = (fxmean(*aggr_candle_) - cfg_.mean) / cfg_.var; // / (10000 * cfg_.pip);
+      inputs_[curr_idx_] = (fxmean(*aggr_candle_) - cfg_.mean) / cfg_.var;
       ++curr_idx_;
     }
     aggr_candle_ = candle;

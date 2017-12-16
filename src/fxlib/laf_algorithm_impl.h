@@ -25,11 +25,10 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings);
 struct laf12_algorithm {
   using InputLayer = mathlib::input_layer<double, 12>;
   using Neuron = mathlib::neuron<double, 12>;
-  using IndexPack = mathlib::index_pack<11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0>;  // the first input is the oldest data
+  using IndexPack = mathlib::index_sequence_pack_t<12>;
   using Map = mathlib::type_pack<IndexPack>;
   using Network = mathlib::nnetwork<InputLayer, std::tuple<Neuron>, Map>;
   using Trainer = mathlib::training_set<mathlib::bp_trainer, Network>;
-
 };
 }  // namespace details
 

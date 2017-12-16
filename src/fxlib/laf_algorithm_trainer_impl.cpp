@@ -56,7 +56,7 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
     for (auto iter = pack_seq.candles.cbegin() + (cfg_.inputs - 1); iter < pack_seq.candles.cend(); ++iter, ++count) {
       log_ << setw(6) << count;
       for (auto aux_iter = iter - (cfg_.inputs - 1); aux_iter <= iter; ++aux_iter) {
-        const double val = (fxmean(*aux_iter) - mean) / var;// / (10000 * cfg_.pip);
+        const double val = (fxmean(*aux_iter) - mean) / var;
         out.write(reinterpret_cast<const char*>(&val), sizeof(val));
         log_ << setw(10) << val;
       }
