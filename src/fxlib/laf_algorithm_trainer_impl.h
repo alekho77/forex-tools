@@ -20,11 +20,6 @@ laf_trainer_cfg laftrainer_from_ptree(const boost::property_tree::ptree& setting
 }  // namespace details
 
 class LafTrainer::Impl {
-
-  struct train_sample {
-    double data[details::laf12_algorithm::sample_size];
-  };
-
 public:
   Impl(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
 
@@ -35,10 +30,9 @@ private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
 
   const details::laf_trainer_cfg cfg_;
+  std::shared_ptr<details::ilaf_impl> laf_impl_;
   std::ostream& headline_;
   std::ostream& log_;
-  details::laf12_algorithm::Network network_;
-  details::laf12_algorithm::Trainer trainer_;
   double mean_;
   double var_;
 };

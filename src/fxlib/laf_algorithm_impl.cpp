@@ -1,7 +1,6 @@
 #include "laf_algorithm_impl.h"
 
 #include "helpers/string_conversion.h"
-#include "helpers/nnetwork_helpers.h"
 
 namespace fxlib {
 
@@ -14,11 +13,15 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
   cfg.timeout = conversion::duration_from_string(settings.get<std::string>("timeout"));
   cfg.margin = settings.get<double>("margin");
   cfg.pip = settings.get<double>("pip");
-  cfg.inputs = settings.get<int>("inputs");
+  cfg.type = settings.get<std::string>("type");
   cfg.step = conversion::duration_from_string(settings.get<std::string>("step"));
-  cfg.mean = settings.get<double>("params.mean");
-  cfg.var = settings.get<double>("params.variance");
+  cfg.mean = settings.get("params.mean", 0.0);
+  cfg.var = settings.get("params.variance", 1.0);
   return cfg;
+}
+
+std::shared_ptr<ilaf_impl> make_laf_impl(const std::string& /*type*/) {
+  return std::shared_ptr<ilaf_impl>(new laf_alg<laf112_def>);
 }
 
 }  // namespace details
@@ -26,8 +29,9 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
 
 LafAlgorithm::Impl::Impl(const boost::property_tree::ptree& settings)
   : cfg_(details::laf_from_ptree(settings)) {
-  inputs_.fill(0);
-  (network_restorer<details::laf12_algorithm::Network>(network_))(settings.get_child("params"));
+  laf_impl_ = details::make_laf_impl(cfg_.type);
+  inputs_.resize(laf_impl_->inputs_number(), 0.0);
+  laf_impl_->restore_network(settings.get_child("params"));
 }
 
 double LafAlgorithm::Impl::feed(const fxcandle& candle) {
@@ -65,11 +69,11 @@ double LafAlgorithm::Impl::feed(const fxcandle& candle) {
     aggr_candle_.volume += candle.volume;
   }
   inputs_.back() = cfg_.normalize(aggr_candle_);
-  return apply_network(std::make_index_sequence<details::laf12_algorithm::Network::input_size>());
+  return laf_impl_->apply_network(inputs_);
 }
 
 void LafAlgorithm::Impl::reset() {
-  inputs_.fill(0);
+  inputs_ = std::vector<double>(laf_impl_->inputs_number(), 0.0);
   time_bound_.reset();
   aggr_candle_ = fxcandle();
 }
