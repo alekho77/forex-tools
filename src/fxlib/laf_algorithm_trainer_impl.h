@@ -20,13 +20,16 @@ laf_trainer_cfg laftrainer_from_ptree(const boost::property_tree::ptree& setting
 }  // namespace details
 
 class LafTrainer::Impl {
+
+  struct train_sample {
+    double data[details::laf12_algorithm::sample_size];
+  };
+
 public:
   Impl(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
 
   void prepare_training_set(const fxsequence& seq, std::ostream& out) const;
-  void load_training_set(std::istream& in);
-  void train();
-  void result(boost::property_tree::ptree& settings) const;
+  boost::property_tree::ptree load_and_train(std::istream&);
 
 private:
   bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;

@@ -30,10 +30,9 @@ void Training(const boost::property_tree::ptree& prop, bool out) {
   if (!fin) {
     throw ios_base::failure("Could not open '" + g_srcbin.string() + "'");
   }
-  trainer->LoadTrainingSet(fin);
-  trainer->Train();
-  boost::property_tree::ptree res = prop;
-  res.erase("pip");
-  trainer->SaveResult(res);
-  boost::property_tree::write_json(g_config.string(), res);
+  boost::property_tree::ptree cfg = prop;
+  cfg.erase("params");
+  auto res = trainer->LoadAndTrain(fin);
+  cfg.put_child("params", res);
+  boost::property_tree::write_json(g_config.string(), cfg);
 }

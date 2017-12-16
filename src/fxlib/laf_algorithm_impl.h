@@ -30,6 +30,8 @@ struct laf12_algorithm {
   using Map = mathlib::type_pack<IndexPack>;
   using Network = mathlib::nnetwork<InputLayer, std::tuple<Neuron>, Map>;
   using Trainer = mathlib::training_set<mathlib::bp_trainer, Network>;
+  static constexpr size_t sample_size = std::tuple_size<std::tuple_element_t<0, Trainer::sample_t>>::value
+                                      + std::tuple_size<std::tuple_element_t<1, Trainer::sample_t>>::value;
 };
 }  // namespace details
 

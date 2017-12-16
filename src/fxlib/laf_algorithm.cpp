@@ -3,6 +3,8 @@
 #include "laf_algorithm_trainer_impl.h"
 #include "laf_algorithm_impl.h"
 
+#include <boost/property_tree/ptree.hpp>
+
 namespace fxlib {
 
 LafTrainer::LafTrainer(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log)
@@ -15,16 +17,8 @@ void LafTrainer::PrepareTrainingSet(const fxsequence& seq, std::ostream& out) co
   impl_->prepare_training_set(seq, out);
 }
 
-void LafTrainer::LoadTrainingSet(std::istream& in) {
-  impl_->load_training_set(in);
-}
-
-void LafTrainer::Train() {
-  impl_->train();
-}
-
-void LafTrainer::SaveResult(boost::property_tree::ptree& settings) const {
-  impl_->result(settings);
+boost::property_tree::ptree LafTrainer::LoadAndTrain(std::istream& in) {
+  return impl_->load_and_train(in);
 }
 
 LafAlgorithm::LafAlgorithm(const boost::property_tree::ptree& settings)

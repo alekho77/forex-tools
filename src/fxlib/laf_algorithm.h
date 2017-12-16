@@ -16,9 +16,7 @@ public:
   ~LafTrainer();
   
   void PrepareTrainingSet(const fxsequence& seq, std::ostream& out) const override;
-  void LoadTrainingSet(std::istream& in) override;
-  void Train() override;
-  void SaveResult(boost::property_tree::ptree& settings) const override;
+  boost::property_tree::ptree LoadAndTrain(std::istream&) override;
 
 private:
   class Impl;

@@ -16,8 +16,8 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
   cfg.pip = settings.get<double>("pip");
   cfg.inputs = settings.get<int>("inputs");
   cfg.step = conversion::duration_from_string(settings.get<std::string>("step"));
-  cfg.mean = settings.get("mean", 0.0);
-  cfg.var = settings.get("variance", 1.0);
+  cfg.mean = settings.get<double>("params.mean");
+  cfg.var = settings.get<double>("params.variance");
   return cfg;
 }
 
@@ -27,7 +27,7 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
 LafAlgorithm::Impl::Impl(const boost::property_tree::ptree& settings)
   : cfg_(details::laf_from_ptree(settings)) {
   inputs_.fill(0);
-  (network_restorer<details::laf12_algorithm::Network>(network_))(settings);
+  (network_restorer<details::laf12_algorithm::Network>(network_))(settings.get_child("params"));
 }
 
 double LafAlgorithm::Impl::feed(const fxcandle& candle) {
