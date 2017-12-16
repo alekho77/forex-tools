@@ -111,6 +111,6 @@ void Analyze(const boost::property_tree::ptree& prop) {
     fout << setw(8) << setfill(' ') << fixed << setprecision(6) << FRR << " ";
     fout << setw(8) << setfill(' ') << seconds(static_cast<long>(60.0 * actual_wait_operation[i])) << endl;
   }
-  fout << "EOD" << endl;
+  fout << setw(0) << "EOD" << endl;
   cout << "done" << endl;
 }

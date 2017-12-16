@@ -18,6 +18,7 @@ struct laf_cfg : ForecastInfo {
   boost::posix_time::time_duration step;  //* Number of minutes that are used for each input.
   double mean;
   double var;
+  double normalize(const fxcandle& c) const { return (fxmean(c) - mean) / var; }
 };
 
 laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings);
@@ -50,9 +51,8 @@ private:
   const details::laf_cfg cfg_;
   details::laf12_algorithm::Network network_;
   std::array<double, details::laf12_algorithm::Network::input_size> inputs_;
-  size_t curr_idx_ = 0;
   boost::optional<boost::posix_time::time_iterator> time_bound_;
-  boost::optional<fxcandle> aggr_candle_;
+  fxcandle aggr_candle_ = fxcandle();
 };
 
 }  // namespace fxlib

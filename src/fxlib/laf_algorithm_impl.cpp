@@ -53,34 +53,25 @@ double LafAlgorithm::Impl::feed(const fxcandle& candle) {
     while (candle.time > **time_bound_) {
       ++(*time_bound_);
     }
-    if (aggr_candle_.is_initialized()) {
-      inputs_[curr_idx_] = (fxmean(*aggr_candle_) - cfg_.mean) / cfg_.var;
-      ++curr_idx_;
+    for (size_t i = 1; i < inputs_.size(); i++) {
+      inputs_[i - 1] = inputs_[i];
     }
     aggr_candle_ = candle;
-    aggr_candle_->time = **time_bound_;
-    if (curr_idx_ >= inputs_.size()) {
-      double estimation = apply_network(std::make_index_sequence<details::laf12_algorithm::Network::input_size>());
-      for (size_t i = 1; i < inputs_.size(); i++) {
-        inputs_[i - 1] = inputs_[i];
-      }
-      curr_idx_ = inputs_.size() - 1;
-      return estimation;
-    }
-    return 0;
+    aggr_candle_.time = **time_bound_;
+  } else {
+    aggr_candle_.close = candle.close;
+    aggr_candle_.high = std::max(aggr_candle_.high, candle.high);
+    aggr_candle_.low = std::min(aggr_candle_.low, candle.low);
+    aggr_candle_.volume += candle.volume;
   }
-  aggr_candle_->close = candle.close;
-  aggr_candle_->high = std::max(aggr_candle_->high, candle.high);
-  aggr_candle_->low = std::min(aggr_candle_->low, candle.low);
-  aggr_candle_->volume += candle.volume;
-  return 0;
+  inputs_.back() = cfg_.normalize(aggr_candle_);
+  return apply_network(std::make_index_sequence<details::laf12_algorithm::Network::input_size>());
 }
 
 void LafAlgorithm::Impl::reset() {
   inputs_.fill(0);
-  curr_idx_ = 0;
   time_bound_.reset();
-  aggr_candle_.reset();
+  aggr_candle_ = fxcandle();
 }
 
 ForecastInfo LafAlgorithm::Impl::info() const {
