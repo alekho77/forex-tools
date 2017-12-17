@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-    Single layer network for modeling linear adaptive filtering (LAF).
+Single layer network for modeling non-linear adaptive filtering (NLAF).
 */
 
 #include "fxforecast.h"
@@ -10,11 +10,11 @@
 
 namespace fxlib {
 
-class LafTrainer : public ITrainer {
+class NLafTrainer : public ITrainer {
 public:
-  explicit LafTrainer(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
-  ~LafTrainer();
-  
+  explicit NLafTrainer(const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
+  ~NLafTrainer();
+
   void PrepareTrainingSet(const fxsequence& seq, std::ostream& out) const override;
   boost::property_tree::ptree LoadAndTrain(std::istream&) override;
 
@@ -23,10 +23,10 @@ private:
   std::unique_ptr<Impl> impl_;
 };
 
-class LafAlgorithm : public IForecaster {
+class NLafAlgorithm : public IForecaster {
 public:
-  explicit LafAlgorithm(const boost::property_tree::ptree& settings);
-  ~LafAlgorithm();
+  explicit NLafAlgorithm(const boost::property_tree::ptree& settings);
+  ~NLafAlgorithm();
 
   double Feed(const fxcandle&) override;
   void Reset() override;

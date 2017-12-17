@@ -24,6 +24,8 @@ boost::property_tree::ptree LafTrainer::LoadAndTrain(std::istream& in) {
 LafAlgorithm::LafAlgorithm(const boost::property_tree::ptree& settings)
   : impl_(std::make_unique<Impl>(settings)) {}
 
+LafAlgorithm::~LafAlgorithm() = default;
+
 double LafAlgorithm::Feed(const fxcandle& candle) {
   return impl_->feed(candle);
 }

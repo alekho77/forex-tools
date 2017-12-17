@@ -158,6 +158,10 @@
     <ClInclude Include="laf_algorithm_def.h" />
     <ClInclude Include="laf_algorithm_impl.h" />
     <ClInclude Include="laf_algorithm_trainer_impl.h" />
+    <ClInclude Include="nlaf_algorithm.h" />
+    <ClInclude Include="nlaf_algorithm_def.h" />
+    <ClInclude Include="nlaf_algorithm_impl.h" />
+    <ClInclude Include="nlaf_algorithm_trainer_impl.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dummy_algorithm.cpp" />
@@ -172,6 +176,8 @@
     <ClCompile Include="laf_algorithm_def.cpp" />
     <ClCompile Include="laf_algorithm_impl.cpp" />
     <ClCompile Include="laf_algorithm_trainer_impl.cpp" />
+    <ClCompile Include="nlaf_algorithm.cpp" />
+    <ClCompile Include="nlaf_algorithm_impl.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
