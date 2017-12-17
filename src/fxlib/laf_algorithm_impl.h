@@ -1,11 +1,8 @@
 #pragma once
 
 #include "laf_algorithm.h"
-
+#include "laf_algorithm_def.h"
 #include "helpers/nnetwork_helpers.h"
-
-#include "math/mathlib/trainingset.h"
-#include "math/mathlib/bp_trainer.h"
 
 #include <boost/optional.hpp>
 
@@ -22,17 +19,6 @@ struct laf_cfg : ForecastInfo {
 };
 
 laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings);
-
-struct laf112_def {
-  using InputLayer = mathlib::input_layer<double, 12>;
-  using Neuron = mathlib::neuron<double, 12>;
-  using IndexPack = mathlib::index_sequence_pack_t<12>;
-  using Map = mathlib::type_pack<IndexPack>;
-  using Network = mathlib::nnetwork<InputLayer, std::tuple<Neuron>, Map>;
-  using Trainer = mathlib::training_set<mathlib::bp_trainer, Network>;
-  static constexpr size_t sample_size = std::tuple_size<std::tuple_element_t<0, Trainer::sample_t>>::value
-                                      + std::tuple_size<std::tuple_element_t<1, Trainer::sample_t>>::value;
-};
 
 struct ilaf_impl {
   virtual size_t inputs_number() const = 0;

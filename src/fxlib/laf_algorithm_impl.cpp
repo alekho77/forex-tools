@@ -20,10 +20,6 @@ laf_cfg laf_from_ptree(const boost::property_tree::ptree& settings) {
   return cfg;
 }
 
-std::shared_ptr<ilaf_impl> make_laf_impl(const std::string& /*type*/) {
-  return std::shared_ptr<ilaf_impl>(new laf_alg<laf112_def>);
-}
-
 }  // namespace details
 
 

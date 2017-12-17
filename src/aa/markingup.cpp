@@ -4,6 +4,7 @@
 
 extern boost::filesystem::path g_srcbin;
 extern boost::filesystem::path g_outbin;
+extern boost::filesystem::path g_config;
 extern std::string g_algname;
 
 fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin);
@@ -11,7 +12,7 @@ fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin);
 void Markup(const boost::property_tree::ptree& prop) {
   using namespace std;
   if (boost::filesystem::is_directory(g_outbin)) {
-    g_outbin.append(g_srcbin.stem().string() + "-" + g_algname + "-training.bin");
+    g_outbin.append(g_srcbin.stem().string() + "-" + g_config.stem().string() + "-trainset.bin");
   }
   ofstream fbin(g_outbin.string(), ifstream::binary);
   if (!fbin) {

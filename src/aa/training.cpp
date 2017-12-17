@@ -15,7 +15,7 @@ void Training(const boost::property_tree::ptree& prop, bool out) {
   ofstream fout;
   if (out) {
     if (boost::filesystem::is_directory(g_outtxt)) {
-      g_outtxt.append(g_srcbin.stem().string() + "-" + g_algname + "-training.log");
+      g_outtxt.append(g_srcbin.stem().string() + "-training.log");
     }
     fout.open(g_outtxt.string());
     if (!fout) {

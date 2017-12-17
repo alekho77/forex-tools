@@ -7,6 +7,7 @@
 extern double g_pip;
 extern std::string g_algname;
 extern boost::filesystem::path g_srcbin;
+extern boost::filesystem::path g_config;
 extern size_t g_distr_size;
 
 using boost::posix_time::time_duration;
@@ -87,7 +88,7 @@ void Analyze(const boost::property_tree::ptree& prop) {
   cout << "Done" << endl;
   cout << "Number of casts: " << N << endl;
   cout << "----------------------------------" << endl;
-  string out_file = g_algname + "-" + g_srcbin.filename().stem().string() + ".gpl";
+  string out_file = g_srcbin.filename().stem().string() + "-" + g_config.stem().string() + ".gpl";
   cout << "Writing " << out_file << "... ";
   ofstream fout(out_file);
   if (!fout) {

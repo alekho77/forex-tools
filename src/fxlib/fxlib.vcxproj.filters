@@ -78,6 +78,9 @@
     <ClInclude Include="laf_algorithm_impl.h">
       <Filter>Header Files\algorithms</Filter>
     </ClInclude>
+    <ClInclude Include="laf_algorithm_def.h">
+      <Filter>Header Files\algorithms</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fxtime.cpp">
@@ -111,6 +114,9 @@
       <Filter>Source Files\algorithms</Filter>
     </ClCompile>
     <ClCompile Include="laf_algorithm_impl.cpp">
+      <Filter>Source Files\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="laf_algorithm_def.cpp">
       <Filter>Source Files\algorithms</Filter>
     </ClCompile>
   </ItemGroup>

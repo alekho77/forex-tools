@@ -151,6 +151,7 @@
     <ClInclude Include="helpers\fxtime_serializable.h" />
     <ClInclude Include="helpers\string_conversion.h" />
     <ClInclude Include="laf_algorithm.h" />
+    <ClInclude Include="laf_algorithm_def.h" />
     <ClInclude Include="laf_algorithm_impl.h" />
     <ClInclude Include="laf_algorithm_trainer_impl.h" />
   </ItemGroup>
@@ -164,6 +165,7 @@
     <ClCompile Include="fxquote.cpp" />
     <ClCompile Include="fxtime.cpp" />
     <ClCompile Include="laf_algorithm.cpp" />
+    <ClCompile Include="laf_algorithm_def.cpp" />
     <ClCompile Include="laf_algorithm_impl.cpp" />
     <ClCompile Include="laf_algorithm_trainer_impl.cpp" />
   </ItemGroup>
