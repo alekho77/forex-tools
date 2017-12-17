@@ -10,6 +10,8 @@ std::shared_ptr<ilaf_impl> make_laf_impl(const std::string& type) {
     return std::shared_ptr<ilaf_impl>(new laf_alg<laf112_def>);
   } else if (type == "124") {
     return std::shared_ptr<ilaf_impl>(new laf_alg<laf124_def>);
+  } else if (type == "212") {
+    return std::shared_ptr<ilaf_impl>(new laf_alg<laf212_def>);
   }
   return std::shared_ptr<ilaf_impl>();
 }
