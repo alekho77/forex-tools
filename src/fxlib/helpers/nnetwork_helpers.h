@@ -23,7 +23,7 @@ private:
   void save_layer(boost::property_tree::ptree& params) {
     using Layer = mathlib::network_layer_t<L, Network>;
     auto layer_params = (layer_saver<Layer>(network_.layer<L>()))();
-    params.put_child("layer_" + std::to_string(L), layer_params);
+    params.put_child("layer_" + std::to_string(L + 1), layer_params);
     save_layer<L + 1>(params);
   }
   template <>
@@ -43,7 +43,7 @@ private:
     void save_neuron(boost::property_tree::ptree& params) {
       using Neuron = std::tuple_element_t<N, Layer>;
       auto neuron_params = (neuron_saver<Neuron, Neuron::use_bias>(std::get<N>(layer_)))();
-      params.put_child("neuron_" + std::to_string(N), neuron_params);
+      params.put_child("neuron_" + std::to_string(N + 1), neuron_params);
       save_neuron<N + 1>(params);
     }
     template <>
@@ -66,7 +66,7 @@ private:
 
     template <size_t I>
     void save_weight(boost::property_tree::ptree& params) {
-      params.put("weight_" + std::to_string(I), neuron_.weight<I>());
+      params.put("weight_" + std::to_string(I + 1), neuron_.weight<I>());
       save_weight<I + 1>(params);
     }
     template <>
@@ -106,7 +106,7 @@ private:
   template <size_t L>
   void restore_layer(const boost::property_tree::ptree& params) {
     using Layer = mathlib::network_layer_t<L, Network>;
-    auto layer_params = params.get_child("layer_" + std::to_string(L));
+    auto layer_params = params.get_child("layer_" + std::to_string(L + 1));
     (layer_restorer<Layer>(network_.layer<L>()))(layer_params);
     restore_layer<L + 1>(params);
   }
@@ -124,7 +124,7 @@ private:
     template <size_t N>
     void restore_neuron(const boost::property_tree::ptree& params) {
       using Neuron = std::tuple_element_t<N, Layer>;
-      auto neuron_params = params.get_child("neuron_" + std::to_string(N));
+      auto neuron_params = params.get_child("neuron_" + std::to_string(N + 1));
       (neuron_restorer<Neuron, Neuron::use_bias>(std::get<N>(layer_)))(neuron_params);
       restore_neuron<N + 1>(params);
     }
@@ -145,7 +145,7 @@ private:
 
     template <size_t I>
     void restore_weight(const boost::property_tree::ptree& params) {
-      neuron_.set_weight<I>(params.get<double>("weight_" + std::to_string(I)));
+      neuron_.set_weight<I>(params.get<double>("weight_" + std::to_string(I + 1)));
       restore_weight<I + 1>(params);
     }
     template <>
