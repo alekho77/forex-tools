@@ -6,4 +6,5 @@ set ylabel 'Error probability'
 set ytics 0.1
 set xtics 0.1
 plot $Distrib using 1:6 with lines lc 'red' title 'FAR',\
-      '' using 1:7 with lines lc 'violet' title 'FRR'
+      '' using 1:7 with lines lc 'violet' title 'FRR',\
+      '' using 1:($4/$2) with lines lc 'orange' title 'Normalized FAR'
