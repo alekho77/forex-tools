@@ -136,6 +136,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cmdline.cpp" />
+    <ClCompile Include="full.cpp" />
     <ClCompile Include="loading.cpp" />
     <ClCompile Include="ps.cpp" />
     <ClCompile Include="quick.cpp" />

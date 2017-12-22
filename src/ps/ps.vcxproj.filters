@@ -27,5 +27,8 @@
     <ClCompile Include="loading.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="full.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

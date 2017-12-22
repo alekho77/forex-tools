@@ -8,9 +8,12 @@ boost::filesystem::path g_config;
 double g_pip = 0.0001;
 std::string g_algname;
 bool g_quick_mode = false;
+bool g_full_mode = false;
 double g_threshold = 0;
 double g_take_profit = 0;
 double g_stop_loss = 0;
+int g_max_take_profit = 0;
+int g_max_stop_loss = 0;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   using namespace std;
@@ -18,7 +21,8 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   options_description basic_desc("Basic options", 200);
   basic_desc.add_options()
     ("help,h", bool_switch(&help), "Show help.")
-    ("quick,q", bool_switch(&g_quick_mode), "Quick play.");
+    ("quick,q", bool_switch(&g_quick_mode), "Quick play.")
+    ("full,f", bool_switch(&g_full_mode), "Complex play.");
   options_description generic_desc("Generic options", 200);
   generic_desc.add_options()
     ("name,n", value<string>(&g_algname)->required()->value_name("name"), "Name of algorithm for play.")
@@ -33,10 +37,17 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     ("threshold,t", value<double>(&g_threshold)->required()->value_name("[0..1]"), "Threshold for making forecast.")
     ("out,o", value<string>()->value_name("[filename]")->implicit_value("")->notifier(
       [](const string& outname) { g_outtxt = boost::filesystem::canonical(outname); }), "Text file to write log.");
+  options_description full_desc("Complex play options", 200);
+  full_desc.add_options()
+    ("profit,p", value<int>(&g_max_take_profit)->required()->value_name("pip"), "Max Limit order for taking profit in pips.")
+    ("loss,l", value<int>(&g_max_stop_loss)->required()->value_name("pip"), "Max Stop-loss order to limit losses in pips.")
+    ("threshold,t", value<double>(&g_threshold)->required()->value_name("[0..1]"), "Threshold for making forecast.")
+    ("out,o", value<string>()->required()->value_name("filename")->implicit_value("")->notifier(
+      [](const string& outname) { g_outtxt = boost::filesystem::canonical(outname); }), "File to write result (gnu-plot format).");
   options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
     ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.");
-  const auto list_desc = {basic_desc, generic_desc, quick_desc, additional_desc};
+  const auto list_desc = {basic_desc, generic_desc, quick_desc, full_desc, additional_desc};
   try {
     store(command_line_parser(argc, argv).options(basic_desc).allow_unregistered().run(), vm);
     notify(vm);
@@ -46,6 +57,10 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     } else if (g_quick_mode) {
       options_description desc;
       store(parse_command_line(argc, argv, desc.add(basic_desc).add(generic_desc).add(quick_desc).add(additional_desc)), vm);
+      notify(vm);
+    } else if (g_full_mode) {
+      options_description desc;
+      store(parse_command_line(argc, argv, desc.add(basic_desc).add(generic_desc).add(full_desc).add(additional_desc)), vm);
       notify(vm);
     } else {
       throw invalid_argument("The mode should be defined");
