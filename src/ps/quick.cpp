@@ -4,6 +4,7 @@
 
 extern boost::filesystem::path g_srcbin;
 extern boost::filesystem::path g_outtxt;
+extern boost::filesystem::path g_config;
 extern std::string g_algname;
 extern double g_take_profit;
 extern double g_stop_loss;
@@ -24,13 +25,13 @@ bool IsWorseForOpen(fxlib::fxposition position, const fxlib::fxcandle& curr, con
 
 void Quick(const boost::property_tree::ptree& prop, bool out) {
   using namespace std;
-  ofstream fout;
+  ofstream flog;
   if (out) {
     if (boost::filesystem::is_directory(g_outtxt)) {
-      g_outtxt.append(g_srcbin.stem().string() + "-play.log");
+      g_outtxt.append(g_srcbin.stem().string() + "-" + g_config.stem().string() + "-play.log");
     }
-    fout.open(g_outtxt.string());
-    if (!fout) {
+    flog.open(g_outtxt.string());
+    if (!flog) {
       throw ios_base::failure("Could not open '" + g_outtxt.string() + "'");
     }
   }
@@ -40,7 +41,6 @@ void Quick(const boost::property_tree::ptree& prop, bool out) {
   }
   const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
   const fxlib::ForecastInfo info = forecaster->Info();
-  //fxlib::fprofit_t profit = info.position == fxlib::fxposition::fxlong ? fxlib::fxprofit_long : fxlib::fxprofit_short;
   cout << "Playing algorithm " << g_algname << " with threshold " << g_threshold << "..." << endl;
   cout << "Position '" << (info.position == fxlib::fxposition::fxlong ? "long" : "short") << "' with take-profit " << g_take_profit << " and stop-loss " << g_stop_loss << endl;
   cout << "Window " << info.window << " with timeout " << info.timeout << endl;
@@ -61,12 +61,18 @@ void Quick(const boost::property_tree::ptree& prop, bool out) {
     const double est = forecaster->Feed(*piter);
     if (est >= g_threshold) {
       N++;
+      if (flog.is_open()) {
+        flog << setfill(' ') << setw(6) << N << " " << piter->time << " ";
+      }
       // Finding the worst case to open position in window
       auto iopen = piter;
       for (auto iter = piter + 1; iter->time < (piter->time + info.window); ++iter) {
         if (IsWorseForOpen(info.position, *iter, *iopen)) {
           iopen = iter;
         }
+      }
+      if (flog.is_open()) {
+        flog << iopen->time << fixed << setprecision(3) << setw(8) << iopen->high << setw(8) << iopen->low << " ";
       }
       // Shift progress to open position
       while (piter < iopen) {
@@ -90,17 +96,29 @@ void Quick(const boost::property_tree::ptree& prop, bool out) {
           Np++;
           sum_profit += margin;
           trigged = true;
+          if (flog.is_open()) {
+            flog << setw(8) << "profit" << fixed << setprecision(1) << setw(8) << margin / g_pip;
+          }
           break;
         } else if (margin <= - g_stop_loss * g_pip) {
           Nl++;
           sum_loss += margin;
           trigged = true;
+          if (flog.is_open()) {
+            flog << setw(8) << "loss" << fixed << setprecision(1) << setw(8) << margin / g_pip;
+          }
           break;
         }
       }
       if (!trigged) {
         const double margin = (info.position == fxlib::fxposition::fxlong) ? piter->low - open_rate : open_rate - piter->high;
         sum_timeout += margin;
+        if (flog.is_open()) {
+          flog << setw(8) << "timeout" << fixed << setprecision(1) << setw(8) << margin / g_pip;
+        }
+      }
+      if (flog.is_open()) {
+        flog << endl;
       }
     }
   }

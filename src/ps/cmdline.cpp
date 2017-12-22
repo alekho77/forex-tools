@@ -30,12 +30,12 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   quick_desc.add_options()
     ("profit,p", value<double>(&g_take_profit)->required()->value_name("pip"), "Limit order for taking profit in pips.")
     ("loss,l", value<double>(&g_stop_loss)->required()->value_name("pip"), "Stop-loss order to limit losses in pips.")
-    ("threshold,t", value<double>(&g_threshold)->required()->value_name("[0..1]"), "Threshold for making forecast.");
-  options_description additional_desc("Additional options", 200);
-  additional_desc.add_options()
-    ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.")
+    ("threshold,t", value<double>(&g_threshold)->required()->value_name("[0..1]"), "Threshold for making forecast.")
     ("out,o", value<string>()->value_name("[filename]")->implicit_value("")->notifier(
       [](const string& outname) { g_outtxt = boost::filesystem::canonical(outname); }), "Text file to write log.");
+  options_description additional_desc("Additional options", 200);
+  additional_desc.add_options()
+    ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.");
   const auto list_desc = {basic_desc, generic_desc, quick_desc, additional_desc};
   try {
     store(command_line_parser(argc, argv).options(basic_desc).allow_unregistered().run(), vm);
