@@ -1,6 +1,8 @@
 #include "fxlib/fxlib.h"
 #include "fxlib/helpers/program_options.h"
+
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 
 boost::filesystem::path g_srcbin;
 boost::filesystem::path g_outtxt;
@@ -12,8 +14,17 @@ bool g_full_mode = false;
 double g_threshold = 0;
 double g_take_profit = 0;
 double g_stop_loss = 0;
-int g_max_take_profit = 0;
-int g_max_stop_loss = 0;
+std::tuple<int, int> g_take_profit_range = {0, 0};
+std::tuple<int, int> g_stop_loss_range = {0, 0};
+
+std::tuple<int, int> range_from_string(const std::string& str) {
+  const boost::regex fmask("^(\\d+)-(\\d+)$");
+  boost::smatch what;
+  if (boost::regex_match(str, what, fmask)) {
+    return std::make_tuple(std::stoi(what[1]), std::stoi(what[2]));
+  }
+  return{ 0 ,0 };
+}
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   using namespace std;
@@ -39,8 +50,10 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
       [](const string& outname) { g_outtxt = boost::filesystem::canonical(outname); }), "Text file to write log.");
   options_description full_desc("Complex play options", 200);
   full_desc.add_options()
-    ("profit,p", value<int>(&g_max_take_profit)->required()->value_name("pip"), "Max Limit order for taking profit in pips.")
-    ("loss,l", value<int>(&g_max_stop_loss)->required()->value_name("pip"), "Max Stop-loss order to limit losses in pips.")
+    ("profit,p", value<string>()->required()->value_name("a-b")->notifier(
+      [](const string& str) { g_take_profit_range = range_from_string(str); }), "Limit order Range for taking profit in pips.")
+    ("loss,l", value<string>()->required()->value_name("a-b")->notifier(
+      [](const string& str) { g_stop_loss_range = range_from_string(str); }), "Stop-loss order Range to limit losses in pips.")
     ("threshold,t", value<double>(&g_threshold)->required()->value_name("[0..1]"), "Threshold for making forecast.")
     ("out,o", value<string>()->required()->value_name("filename")->implicit_value("")->notifier(
       [](const string& outname) { g_outtxt = boost::filesystem::canonical(outname); }), "File to write result (gnu-plot format).");

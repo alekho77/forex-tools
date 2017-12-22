@@ -6,8 +6,8 @@ extern boost::filesystem::path g_srcbin;
 extern boost::filesystem::path g_outtxt;
 extern boost::filesystem::path g_config;
 extern std::string g_algname;
-extern int g_max_take_profit;
-extern int g_max_stop_loss;
+extern std::tuple<int, int> g_take_profit_range;
+extern std::tuple<int, int> g_stop_loss_range;
 extern double g_pip;
 extern double g_threshold;
 
@@ -34,10 +34,14 @@ void Full(const boost::property_tree::ptree& prop) {
   const fxlib::fxsequence seq = LoadingQuotes(g_srcbin);
   const fxlib::ForecastInfo info = forecaster->Info();
   cout << "Playing algorithm " << g_algname << " with threshold " << g_threshold << "..." << endl;
-  cout << "Position '" << (info.position == fxlib::fxposition::fxlong ? "long" : "short") << "' with take-profit 1.." << g_max_take_profit << " and stop-loss 1.." << g_max_stop_loss << endl;
+  cout << "Position '" << (info.position == fxlib::fxposition::fxlong ? "long" : "short");
+  cout << "' with take-profit " << get<0>(g_take_profit_range) << "-" << get<1>(g_take_profit_range);
+  cout << " and stop-loss " << get<0>(g_stop_loss_range) << "-" << get<1>(g_stop_loss_range) << endl;
   cout << "Window " << info.window << " with timeout " << info.timeout << endl;
   
-  const size_t size = g_max_take_profit * g_max_stop_loss;
+  const size_t profit_range_size = get<1>(g_take_profit_range) - get<0>(g_take_profit_range) + 1;
+  const size_t loss_range_size = get<1>(g_stop_loss_range) - get<0>(g_stop_loss_range) + 1;
+  const size_t size = profit_range_size * loss_range_size;
   vector<size_t> N(size, 0);
   vector<size_t> Np(size, 0);
   vector<size_t> Nl(size, 0);
@@ -45,10 +49,10 @@ void Full(const boost::property_tree::ptree& prop) {
   vector<double> sum_loss(size, 0.0);
   vector<double> sum_timeout(size, 0.0);
   
-  for (int profit = 1; profit <= g_max_take_profit; profit++) {
-    for (int loss = 1; loss <= g_max_stop_loss; loss++) {
+  for (int profit = get<0>(g_take_profit_range); profit <= get<1>(g_take_profit_range); profit++) {
+    for (int loss = get<0>(g_stop_loss_range); loss <= get<1>(g_stop_loss_range); loss++) {
       cout << "Processed profit " << profit << ", loss " << loss;
-      const size_t idx = (profit - 1) * g_max_stop_loss + (loss - 1);
+      const size_t idx = (profit - get<0>(g_take_profit_range)) * loss_range_size + (loss - get<0>(g_stop_loss_range));
       size_t curr_idx = 0;
       int progress = 1;
       size_t progress_idx = (progress * seq.candles.size()) / 10;
