@@ -15,11 +15,12 @@ using boost::posix_time::ptime;
 
 fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin);
 
-enum class pos_result {
-  profit,
-  loss,
-  timeout
-};
+bool IsWorseForOpen(fxlib::fxposition position, const fxlib::fxcandle& curr, const fxlib::fxcandle& worst) {
+  if (position == fxlib::fxposition::fxlong) {
+    return curr.high > worst.high;
+  }
+  return curr.low < worst.low;
+}
 
 void Quick(const boost::property_tree::ptree& prop, bool out) {
   using namespace std;
@@ -61,43 +62,53 @@ void Quick(const boost::property_tree::ptree& prop, bool out) {
     if (est >= g_threshold) {
       N++;
       // Finding the worst case to open position in window
-      const ptime cast_time = piter->time;
-      for (; piter->time < (cast_time + info.window); ++piter, ++curr_idx) {
+      auto iopen = piter;
+      for (auto iter = piter + 1; iter->time < (piter->time + info.window); ++iter) {
+        if (IsWorseForOpen(info.position, *iter, *iopen)) {
+          iopen = iter;
+        }
+      }
+      // Shift progress to open position
+      while (piter < iopen) {
+        ++piter;
+        ++curr_idx;
         if (curr_idx == progress_idx) {
           cout << piter->time << " processed " << (progress * 10) << "%" << endl;
           progress_idx = (++progress * seq.candles.size()) / 10;
         }
       }
       // Open position and await result
-      const ptime pos_start = piter->time;
-      for (; piter->time <= (pos_start + info.timeout); ++piter, ++curr_idx) {
+      const double open_rate = (info.position == fxlib::fxposition::fxlong) ? iopen->high : iopen->low;
+      bool trigged = false;
+      for (; piter->time <= (iopen->time + info.timeout); ++piter, ++curr_idx) {
         if (curr_idx == progress_idx) {
           cout << piter->time << " processed " << (progress * 10) << "%" << endl;
           progress_idx = (++progress * seq.candles.size()) / 10;
         }
+        const double margin = (info.position == fxlib::fxposition::fxlong) ? piter->low - open_rate : open_rate - piter->high;
+        if (margin >= g_take_profit * g_pip) {
+          Np++;
+          sum_profit += margin;
+          trigged = true;
+          break;
+        } else if (margin <= - g_stop_loss * g_pip) {
+          Nl++;
+          sum_loss += margin;
+          trigged = true;
+          break;
+        }
       }
-
-
-      //auto pos = CheckPos(piter, curr_idx, info.window, info.timeout, profit);
-      //switch (get<0>(pos)) {
-      //  case pos_result::profit:
-      //    Np++;
-      //    sum_profit += get<1>(pos);
-      //    break;
-      //  case pos_result::loss:
-      //    Nl++;
-      //    sum_loss += get<1>(pos);
-      //    break;
-      //  default:
-      //    sum_timeout += get<1>(pos);
-      //    break;
-      //}
+      if (!trigged) {
+        const double margin = (info.position == fxlib::fxposition::fxlong) ? piter->low - open_rate : open_rate - piter->high;
+        sum_timeout += margin;
+      }
     }
   }
   cout << "Done" << endl;
   cout << "----------------------------------" << endl;
   cout << "It has been opened " << N << " positions" << endl;
-  cout << "Profit has been taken " << Np << " times (" << fixed << setprecision(2) << (double(Np) / double(N) * 100.0) << "%) total " << sum_profit << " pips" << endl;
-  cout << "Stop-loss has been happened " << Nl << " times (" << fixed << setprecision(2) << (double(Nl) / double(N) * 100.0) << "%) total " << sum_loss << " pips" << endl;
-  cout << "Timeout has been happened " << (N - Np - Nl) << " times (" << fixed << setprecision(2) << (double(N - Np - Nl) / double(N) * 100.0) << "%) total " << sum_timeout << " pips" << endl;
+  cout << "Profit has been taken " << Np << " times (" << fixed << setprecision(2) << (double(Np) / double(N) * 100.0) << "%) sum " << sum_profit / g_pip << " pips" << endl;
+  cout << "Stop-loss has been happened " << Nl << " times (" << fixed << setprecision(2) << (double(Nl) / double(N) * 100.0) << "%) sum " << sum_loss / g_pip << " pips" << endl;
+  cout << "Timeout has been happened " << (N - Np - Nl) << " times (" << fixed << setprecision(2) << (double(N - Np - Nl) / double(N) * 100.0) << "%) sum " << sum_timeout / g_pip << " pips" << endl;
+  cout << "Total " << (sum_profit + sum_loss + sum_timeout) / g_pip << " pips" << endl;
 }
