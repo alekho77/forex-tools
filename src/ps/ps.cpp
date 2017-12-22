@@ -10,7 +10,7 @@ extern bool g_quick_mode;
 extern double g_pip;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm);
-void Quick(const boost::property_tree::ptree& prop);
+void Quick(const boost::property_tree::ptree& prop, bool out);
 
 int main(int argc, char* argv[]) {
   using namespace std;
@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     boost::property_tree::read_json(g_config.string(), prop);
     prop.put("pip", g_pip);
     if (g_quick_mode) {
-      Quick(prop);
+      Quick(prop, !!vm.count("out"));
     }
   } catch (const system_error& e) {
     cout << "[ERROR] " << e.what() << endl;
