@@ -1,0 +1,5 @@
+set terminal windows enhanced
+set title 'Algorithm training errors'
+set xlabel 'epoch'
+set ylabel 'error'
+plot file using 1:4 with lines lc 'red' title 'Error'

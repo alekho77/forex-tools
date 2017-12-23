@@ -1,5 +1,7 @@
 #include "fxlib/fxlib.h"
 
+#include "fxlib/helpers/progress.h"
+
 #include <boost/filesystem.hpp>
 
 extern boost::filesystem::path g_srcbin;
@@ -53,14 +55,9 @@ void Full(const boost::property_tree::ptree& prop) {
     for (int loss = get<0>(g_stop_loss_range); loss <= get<1>(g_stop_loss_range); loss++) {
       cout << "Processed profit " << profit << ", loss " << loss;
       const size_t idx = (profit - get<0>(g_take_profit_range)) * loss_range_size + (loss - get<0>(g_stop_loss_range));
-      size_t curr_idx = 0;
-      int progress = 1;
-      size_t progress_idx = (progress * seq.candles.size()) / 10;
-      for (auto piter = seq.candles.cbegin(); piter < seq.candles.cend() && piter->time <= (seq.candles.back().time - info.timeout - info.window); ++piter, ++curr_idx) {
-        if (curr_idx == progress_idx) {
-          cout << ".";
-          progress_idx = (++progress * seq.candles.size()) / 10;
-        }
+      fxlib::helpers::progress progress(seq.candles.size(), cout);
+      for (auto piter = seq.candles.cbegin(); piter < seq.candles.cend() && piter->time <= (seq.candles.back().time - info.timeout - info.window); ++piter) {
+        progress(piter - seq.candles.cbegin());
         const double est = forecaster->Feed(*piter);
         if (est >= g_threshold) {
           N[idx]++;
@@ -74,20 +71,11 @@ void Full(const boost::property_tree::ptree& prop) {
           // Shift progress to open position
           while (piter < iopen) {
             ++piter;
-            ++curr_idx;
-            if (curr_idx == progress_idx) {
-              cout << ".";
-              progress_idx = (++progress * seq.candles.size()) / 10;
-            }
           }
           // Open position and await result
           const double open_rate = (info.position == fxlib::fxposition::fxlong) ? iopen->high : iopen->low;
           bool trigged = false;
-          for (; piter->time <= (iopen->time + info.timeout); ++piter, ++curr_idx) {
-            if (curr_idx == progress_idx) {
-              cout << ".";
-              progress_idx = (++progress * seq.candles.size()) / 10;
-            }
+          for (; piter->time <= (iopen->time + info.timeout); ++piter) {
             const double margin = (info.position == fxlib::fxposition::fxlong) ? piter->low - open_rate : open_rate - piter->high;
             if (margin >= profit * g_pip) {
               Np[idx]++;

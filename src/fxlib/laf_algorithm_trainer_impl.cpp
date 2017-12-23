@@ -2,6 +2,7 @@
 
 #include "helpers/string_conversion.h"
 #include "helpers/nnetwork_helpers.h"
+#include "helpers/progress.h"
 
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
@@ -124,14 +125,16 @@ boost::property_tree::ptree LafTrainer::Impl::load_and_train(std::istream& in) {
 
   headline_ << "Randomizing weights..." << endl;
   laf_impl_->randomize_network();
-  headline_ << "Training set with " << cfg_.learning.rate << " learning rate and " << cfg_.learning.momentum << " momentum..." << endl;
+  headline_ << "Training with " << cfg_.learning.rate << " learning rate and " << cfg_.learning.momentum << " momentum..." << endl;
   laf_impl_->set_learning_params(cfg_.learning.rate, cfg_.learning.momentum);
   headline_ << "Number of epochs " << cfg_.learning.epochs << endl;
   headline_ << "----------------------------------" << endl;
+  helpers::progress epoch_progress(cfg_.learning.epochs, headline_);
+  log_ << "#  epoch samples    error before     error after" << endl;
   size_t curr_neg_idx = 0;
   for (int e = 0; e < cfg_.learning.epochs; e++) {
-    headline_ << "Epoch " << (e + 1) << endl;
-    headline_ << "Preparing training set..." << endl;
+    epoch_progress(e);
+    log_ << setw(8) << (e + 1);
     vector<double> train_set;
     train_set.reserve(2 * positive_count * sample_size);
     train_set.insert(train_set.cend(), positives.cbegin(), positives.cend());
@@ -144,18 +147,15 @@ boost::property_tree::ptree LafTrainer::Impl::load_and_train(std::istream& in) {
     stream_buffer<array_source> buf(reinterpret_cast<const char*>(train_set.data()), sizeof(double) * train_set.size());
     istream trin(&buf);
     const size_t samples_number = laf_impl_->load_set(trin);
-    headline_ << "Loaded " << samples_number << " samples" << endl;
-    headline_ << "Training..." << endl;
-    auto sum_err = laf_impl_->train([this](size_t idx, double err) {
-      this->log_ << setw(8) << idx << setw(15) << err << endl;
-    });
-    headline_ << "Mean errors for epoch: [" << get<0>(sum_err) << ", " << get<1>(sum_err) << "]" << endl;
-    headline_ << "----------------------------------" << endl;
+    log_ << setw(8) << samples_number;
+    auto sum_err = laf_impl_->train();
+    log_ << setw(16) << get<0>(sum_err) << setw(16) << get<1>(sum_err) << endl;
     if (get<0>(sum_err) <= get<1>(sum_err)) {
       throw logic_error("The error has increased");
     }
   }
-  
+  headline_ << "----------------------------------" << endl;
+
   boost::property_tree::ptree params;
   auto net_params = laf_impl_->network_params();
   params.put_child("network", net_params);

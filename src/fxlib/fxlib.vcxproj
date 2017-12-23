@@ -153,6 +153,7 @@
     <ClInclude Include="helpers\fxquote_serializable.h" />
     <ClInclude Include="helpers\fxtime_conversion.h" />
     <ClInclude Include="helpers\fxtime_serializable.h" />
+    <ClInclude Include="helpers\progress.h" />
     <ClInclude Include="helpers\string_conversion.h" />
     <ClInclude Include="laf_algorithm.h" />
     <ClInclude Include="laf_algorithm_def.h" />

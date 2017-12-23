@@ -27,7 +27,7 @@ struct ilaf_impl {
   virtual void randomize_network() = 0;
   virtual void set_learning_params(double rate, double momentum) = 0;
   virtual size_t load_set(std::istream& in) = 0;
-  virtual std::tuple<double, double> train(const std::function<void(size_t, double)>& cb) = 0;
+  virtual std::tuple<double, double> train() = 0;
   virtual boost::property_tree::ptree network_params() const = 0;
   virtual ~ilaf_impl() {}
 };
@@ -56,10 +56,8 @@ public:
     trainer_.shuffle();
     return count;
   }
-  std::tuple<double, double> train(const std::function<void(size_t, double)>& cb) override {
-    return trainer_([&cb](size_t idx, const auto&, const auto&, const auto& errs) {
-      cb(idx, std::get<1>(errs));
-    });
+  std::tuple<double, double> train() override {
+    return trainer_();
   }
   boost::property_tree::ptree network_params() const override {
     return network_saver<typename defines::Network>(network_)();
