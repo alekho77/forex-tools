@@ -68,9 +68,14 @@ void LafTrainer::Impl::prepare_training_set(const fxsequence& seq, std::ostream&
         log_ << setw(10) << val;
         sample.push_back(val);
       }
-      const bool positive = check_pos(iter->time, marks, cfg_.window);
-      sample.push_back(positive ? 1.0 : 0.0);
-      if (positive) {
+      auto gen_range = check_pos(iter->time, marks, cfg_.window);
+      const size_t win_size = cfg_.window.total_seconds() / 60;
+      const size_t gen_size = gen_range.second - gen_range.first;
+      if (gen_size > win_size) {
+        throw logic_error("Something has gone wrong!");
+      }
+      sample.push_back(static_cast<double>(gen_size) / static_cast<double>(win_size));
+      if (gen_range.first < gen_range.second) {
         positives.insert(positives.cend(), sample.cbegin(), sample.cend());
       } else {
         negatives.insert(negatives.cend(), sample.cbegin(), sample.cend());
@@ -159,12 +164,10 @@ boost::property_tree::ptree LafTrainer::Impl::load_and_train(std::istream& in) {
   return params;
 }
 
-bool LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers & marks, const boost::posix_time::time_duration window) const {
-  auto icandidate = std::lower_bound(marks.cbegin(), marks.cend(), pos);
-  if (icandidate != marks.cend() && *icandidate - pos < window) {
-    return true;
-  }
-  return false;
+std::pair<LafTrainer::Impl::marks_iterator, LafTrainer::Impl::marks_iterator> LafTrainer::Impl::check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const {
+  auto blower = std::lower_bound(marks.cbegin(), marks.cend(), pos);
+  auto bupper = std::lower_bound(marks.cbegin(), marks.cend(), pos + window);
+  return std::make_pair(blower, bupper);
 }
 
 }  // namespace fxlib

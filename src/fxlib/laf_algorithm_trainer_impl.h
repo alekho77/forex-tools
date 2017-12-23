@@ -27,7 +27,8 @@ public:
   boost::property_tree::ptree load_and_train(std::istream&);
 
 private:
-  bool check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
+  using marks_iterator = fxlib::markers::const_iterator;
+  std::pair<marks_iterator, marks_iterator> check_pos(const boost::posix_time::ptime pos, const fxlib::markers& marks, const boost::posix_time::time_duration window) const;
 
   const details::laf_trainer_cfg cfg_;
   std::shared_ptr<details::ilaf_impl> laf_impl_;
