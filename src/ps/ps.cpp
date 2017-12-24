@@ -8,11 +8,13 @@
 extern boost::filesystem::path g_config;
 extern bool g_quick_mode;
 extern bool g_full_mode;
+extern bool g_search_mode;
 extern double g_pip;
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm);
 void Quick(const boost::property_tree::ptree& prop, bool out);
 void Full(const boost::property_tree::ptree& prop);
+void Search(const boost::property_tree::ptree& prop);
 
 int main(int argc, char* argv[]) {
   using namespace std;
@@ -34,6 +36,8 @@ int main(int argc, char* argv[]) {
       Quick(prop, !!vm.count("out"));
     } else if (g_full_mode) {
       Full(prop);
+    } else if (g_search_mode) {
+      Search(prop);
     }
   } catch (const system_error& e) {
     cout << "[ERROR] " << e.what() << endl;

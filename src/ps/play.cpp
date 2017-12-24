@@ -14,6 +14,9 @@ double Play(fxlib::IForecaster* forecaster, const fxlib::fxsequence& seq, fxlib:
   double sprofit = 0;
   double sloss = 0;
   double stimeout = 0;
+  if (N) *N = 0;
+  if (Np) *Np = 0;
+  if (Nl) *Nl = 0;
   for (auto piter = seq.candles.cbegin(); piter < seq.candles.cend() && piter->time <= (seq.candles.back().time - timeout - window); ++piter) {
     const double est = forecaster->Feed(*piter);
     if (est >= threshold) {
