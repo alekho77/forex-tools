@@ -30,5 +30,11 @@
     <ClCompile Include="full.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="play.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="search.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

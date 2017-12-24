@@ -17,13 +17,7 @@ using boost::posix_time::time_duration;
 using boost::posix_time::ptime;
 
 fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin);
-
-bool IsWorseForOpen(fxlib::fxposition position, const fxlib::fxcandle& curr, const fxlib::fxcandle& worst) {
-  if (position == fxlib::fxposition::fxlong) {
-    return curr.high > worst.high;
-  }
-  return curr.low < worst.low;
-}
+bool IsWorseForOpen(fxlib::fxposition position, const fxlib::fxcandle& curr, const fxlib::fxcandle& worst);
 
 void Quick(const boost::property_tree::ptree& prop, bool out) {
   using namespace std;

@@ -19,9 +19,9 @@ using boost::posix_time::ptime;
 fxlib::fxsequence LoadingQuotes(const boost::filesystem::path& srcbin);
 bool IsWorseForOpen(fxlib::fxposition position, const fxlib::fxcandle& curr, const fxlib::fxcandle& worst);
 double Play(fxlib::IForecaster* forecaster, const fxlib::fxsequence& seq, fxlib::fxposition position,
-            const boost::posix_time::time_duration& timeout, const boost::posix_time::time_duration& window,
-            double profit, double loss, double threshold,
-            size_t* N, size_t* Np, double* sum_profit, size_t* Nl, double* sum_loss, double* sum_timeout);
+  const boost::posix_time::time_duration& timeout, const boost::posix_time::time_duration& window,
+  double profit, double loss, double threshold,
+  size_t* N, size_t* Np, double* sum_profit, size_t* Nl, double* sum_loss, double* sum_timeout);
 
 void Full(const boost::property_tree::ptree& prop) {
   using namespace std;
@@ -44,7 +44,7 @@ void Full(const boost::property_tree::ptree& prop) {
   cout << "' with take-profit " << get<0>(g_take_profit_range) << "-" << get<1>(g_take_profit_range);
   cout << " and stop-loss " << get<0>(g_stop_loss_range) << "-" << get<1>(g_stop_loss_range) << endl;
   cout << "Window " << info.window << " with timeout " << info.timeout << endl;
-  
+
   const size_t profit_range_size = get<1>(g_take_profit_range) - get<0>(g_take_profit_range) + 1;
   const size_t loss_range_size = get<1>(g_stop_loss_range) - get<0>(g_stop_loss_range) + 1;
   const size_t range_size = profit_range_size * loss_range_size;
@@ -62,7 +62,7 @@ void Full(const boost::property_tree::ptree& prop) {
       const size_t idx = (profit - get<0>(g_take_profit_range)) * loss_range_size + (loss - get<0>(g_stop_loss_range));
       progress(idx);
       /*double total_sum =*/ Play(&*forecaster, seq, info.position, info.timeout, info.window, profit * g_pip, loss * g_pip, g_threshold,
-                              &N[idx], &Np[idx], &sum_profit[idx], &Nl[idx], &sum_loss[idx], &sum_timeout[idx]);
+        &N[idx], &Np[idx], &sum_profit[idx], &Nl[idx], &sum_loss[idx], &sum_timeout[idx]);
     }
   }
   cout << "----------------------------------" << endl;

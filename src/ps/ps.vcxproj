@@ -138,8 +138,10 @@
     <ClCompile Include="cmdline.cpp" />
     <ClCompile Include="full.cpp" />
     <ClCompile Include="loading.cpp" />
+    <ClCompile Include="play.cpp" />
     <ClCompile Include="ps.cpp" />
     <ClCompile Include="quick.cpp" />
+    <ClCompile Include="search.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\fxlib\fxlib.vcxproj">

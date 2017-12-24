@@ -11,19 +11,30 @@ double g_pip = 0.0001;
 std::string g_algname;
 bool g_quick_mode = false;
 bool g_full_mode = false;
+bool g_search_mode = false;
 double g_threshold = 0;
 double g_take_profit = 0;
 double g_stop_loss = 0;
 std::tuple<int, int> g_take_profit_range = {0, 0};
-std::tuple<int, int> g_stop_loss_range = {0, 0};
+std::tuple<int, int> g_stop_loss_range = { 0, 0 };
+std::tuple<double, double> g_threshold_range = { 0, 0 };
 
-std::tuple<int, int> range_from_string(const std::string& str) {
+std::tuple<int, int> irange_from_string(const std::string& str) {
   const boost::regex fmask("^(\\d+)-(\\d+)$");
   boost::smatch what;
   if (boost::regex_match(str, what, fmask)) {
     return std::make_tuple(std::stoi(what[1]), std::stoi(what[2]));
   }
-  return{ 0 ,0 };
+  return{ 0 , 0 };
+}
+
+std::tuple<double, double> drange_from_string(const std::string& str) {
+  const boost::regex fmask("^(\\d+\\.\\d*)-(\\d+\\.\\d*)$");
+  boost::smatch what;
+  if (boost::regex_match(str, what, fmask)) {
+    return std::make_tuple(std::stoi(what[1]), std::stoi(what[2]));
+  }
+  return{ 0 , 0 };
 }
 
 bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
@@ -33,7 +44,8 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   basic_desc.add_options()
     ("help,h", bool_switch(&help), "Show help.")
     ("quick,q", bool_switch(&g_quick_mode), "Quick play.")
-    ("full,f", bool_switch(&g_full_mode), "Complex play.");
+    ("full,f", bool_switch(&g_full_mode), "Complex play.")
+    ("search,r", bool_switch(&g_search_mode), "Search the best parameters for play.");
   options_description generic_desc("Generic options", 200);
   generic_desc.add_options()
     ("name,n", value<string>(&g_algname)->required()->value_name("name"), "Name of algorithm for play.")
@@ -51,9 +63,9 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
   options_description full_desc("Complex play options", 200);
   full_desc.add_options()
     ("profit,p", value<string>()->required()->value_name("a-b")->notifier(
-      [](const string& str) { g_take_profit_range = range_from_string(str); }), "Limit order Range for taking profit in pips.")
+      [](const string& str) { g_take_profit_range = irange_from_string(str); }), "Limit order Range for taking profit in pips.")
     ("loss,l", value<string>()->required()->value_name("a-b")->notifier(
-      [](const string& str) { g_stop_loss_range = range_from_string(str); }), "Stop-loss order Range to limit losses in pips.")
+      [](const string& str) { g_stop_loss_range = irange_from_string(str); }), "Stop-loss order Range to limit losses in pips.")
     ("threshold,t", value<double>(&g_threshold)->required()->value_name("[0..1]"), "Threshold for making forecast.")
     ("out,o", value<string>()->required()->value_name("filename")->implicit_value("")->notifier(
       [](const string& outname) { g_outtxt = boost::filesystem::canonical(outname); }), "File to write result (gnu-plot format).");
