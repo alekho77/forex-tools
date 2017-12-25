@@ -59,5 +59,6 @@ double Play(fxlib::IForecaster* forecaster, const fxlib::fxsequence& seq, fxlib:
   if (sum_profit) *sum_profit = sprofit;
   if (sum_loss) *sum_loss = sloss;
   if (sum_timeout) *sum_timeout = stimeout;
+  forecaster->Reset();
   return sprofit + sloss + stimeout;
 }

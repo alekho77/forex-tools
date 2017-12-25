@@ -18,6 +18,7 @@ double g_stop_loss = 0;
 std::tuple<int, int> g_take_profit_range = { 0, 0 };
 std::tuple<int, int> g_stop_loss_range = { 0, 0 };
 std::tuple<double, double> g_threshold_range = { 0, 0 };
+double g_momentum = 0.3;
 
 std::tuple<int, int> irange_from_string(const std::string& str) {
   const boost::regex fmask("^(\\d+)-(\\d+)$");
@@ -76,8 +77,9 @@ bool TryParseCommandLine(int argc, char* argv[], variables_map& vm) {
     ("loss,l", value<string>()->required()->value_name("a-b")->notifier(
       [](const string& str) { g_stop_loss_range = irange_from_string(str); }), "Stop-loss order Range to limit losses in pips.")
     ("threshold,t", value<string>()->required()->value_name("x.x-y.y")->notifier (
-      [](const string& str) { g_threshold_range = drange_from_string(str); }), "Threshold for making forecast [0..1].");
-  options_description additional_desc("Additional options", 200);
+      [](const string& str) { g_threshold_range = drange_from_string(str); }), "Threshold for making forecast [0..1].")
+    ("momentum,m", value<double>(&g_momentum)->default_value(0.3), "Momentum of gradient searching.");
+    options_description additional_desc("Additional options", 200);
   additional_desc.add_options()
     ("pip,z", value<double>(&g_pip)->value_name("size"), "Pip size, usually 0.0001 or 0.01.");
   const auto list_desc = {basic_desc, generic_desc, quick_desc, full_desc, search_desc, additional_desc};
