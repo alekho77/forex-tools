@@ -4,6 +4,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <random>
+
 extern boost::filesystem::path g_srcbin;
 extern std::string g_algname;
 extern std::tuple<int, int> g_take_profit_range;
@@ -115,12 +117,72 @@ void Search(const boost::property_tree::ptree& prop) {
   cout << "' take-profit range " << get<0>(g_take_profit_range) << "-" << get<1>(g_take_profit_range);
   cout << " and stop-loss range " << get<0>(g_stop_loss_range) << "-" << get<1>(g_stop_loss_range) << endl;
   cout << "Window " << info.window << " with timeout " << info.timeout << endl;
-  cout << "Searching rate: [" << g_rate << "] and momentum " << g_momentum << endl;
+  //cout << "Searching rate: [" << g_rate << "] and momentum " << g_momentum << endl;
   cout << "----------------------------------" << endl;
-  double profit1 = (get<0>(g_take_profit_range) + get<1>(g_take_profit_range)) * g_pip / 2;
-  double loss1 = (get<0>(g_stop_loss_range) + get<1>(g_stop_loss_range)) * g_pip / 2;
-  double threshold1 = (get<0>(g_threshold_range) + get<1>(g_threshold_range)) / 2;
-  /*double total1 =*/ SubSearch(&*forecaster, seq, info, profit1, loss1, threshold1);
+  double temperature = 1000 * g_pip;
+  const double alpha = 0.95;
+  random_device rdev;
+  mt19937 gen(rdev());
+
+  //auto dist = [&](double t, double val, const tuple<double, double>& range) {
+  //  const double d = exp(- 0.23 * t);
+  //  normal_distribution<double> dist(0.0, d);
+  //  const double a = -log((get<1>(range) - val) / (val - get<0>(range)));
+  //  const double y = 1 / (1 + exp(-(dist(gen) + a)));
+  //  const double y * (get<1>(range) - get<0>(range)) + get<0>(g_take_profit_range);
+  //};
+
+  uniform_real_distribution<double> dist_profit(get<0>(g_take_profit_range) * g_pip, get<1>(g_take_profit_range) * g_pip);
+  uniform_real_distribution<double> dist_loss(get<0>(g_stop_loss_range) * g_pip, get<1>(g_stop_loss_range) * g_pip);
+  uniform_real_distribution<double> dist_threshold(get<0>(g_threshold_range), get<1>(g_threshold_range));
+  uniform_real_distribution<double> dist_temperature;
+
+  auto fun = [&](double p, double l, double t) {
+    return Play(&*forecaster, seq, info.position, info.timeout, info.window, p, l, t, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+  };
+
+  cout << fixed;
+  double profit = dist_profit(gen);
+  double loss = dist_loss(gen);
+  double threshold = dist_threshold(gen);
+  cout << setprecision(4) << "Point [" << 1 / g_pip * make_tuple(profit, loss, threshold) << "]: ";
+  double total = fun(profit, loss, threshold);
+  cout << setprecision(2) << total / g_pip << endl;
+
+  do {
+    const double profit_cand = dist_profit(gen);
+    const double loss_cand = dist_loss(gen);
+    const double threshold_cand = dist_threshold(gen);
+    cout << setprecision(4) << "    candidate [" << 1 / g_pip * make_tuple(profit_cand, loss_cand, threshold_cand) << "]: ";
+    const double total_cand = fun(profit_cand, loss_cand, threshold_cand);
+    cout << setprecision(2) << total_cand / g_pip;
+    const double dh = total - total_cand;
+    cout << setprecision(2) << " (" << dh / g_pip << ")";
+    auto jump = [&](bool undoubted) {
+      cout << " jump(";
+      if (!undoubted) {
+        cout << setprecision(1) << temperature / g_pip;
+      }
+      cout << ")" << endl;
+      profit = profit_cand;
+      loss = loss_cand;
+      threshold = threshold_cand;
+      total = total_cand;
+      cout << setprecision(4) << "Point [" << 1 / g_pip * make_tuple(profit, loss, threshold) << "]: " << setprecision(2) << total / g_pip << endl;
+    };
+    if (dh < 0) {
+      jump(true);
+    } else {
+      const double p = exp(- dh / temperature) * (1 / (1 + exp(-total)));
+      if (p > dist_temperature(gen)) {
+        jump(false);
+      } else {
+        cout << setprecision(1) << " skip(" << temperature / g_pip << ")" << endl;
+      }
+      temperature *= alpha;
+    }
+  } while (temperature >= g_pip);
+
   cout << "----------------------------------" << endl;
   size_t N;
   size_t Np;
@@ -128,7 +190,7 @@ void Search(const boost::property_tree::ptree& prop) {
   double sum_profit;
   double sum_loss;
   double sum_timeout;
-  Play(&*forecaster, seq, info.position, info.timeout, info.window, profit1, loss1, threshold1, &N, &Np, &sum_profit, &Nl, &sum_loss, &sum_timeout);
+  Play(&*forecaster, seq, info.position, info.timeout, info.window, profit, loss, threshold, &N, &Np, &sum_profit, &Nl, &sum_loss, &sum_timeout);
   cout << "It has been opened " << N << " positions" << endl;
   cout << "Profit has been taken " << Np << " times (" << fixed << setprecision(2) << (double(Np) / double(N) * 100.0) << "%) sum " << sum_profit / g_pip << " pips" << endl;
   cout << "Stop-loss has been happened " << Nl << " times (" << fixed << setprecision(2) << (double(Nl) / double(N) * 100.0) << "%) sum " << sum_loss / g_pip << " pips" << endl;
