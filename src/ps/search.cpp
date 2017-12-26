@@ -119,10 +119,15 @@ void Search(const boost::property_tree::ptree& prop) {
   cout << "Window " << info.window << " with timeout " << info.timeout << endl;
   //cout << "Searching rate: [" << g_rate << "] and momentum " << g_momentum << endl;
   cout << "----------------------------------" << endl;
-  double temperature = 1000 * g_pip;
-  const double alpha = 0.95;
+  const double temperature_base = 1000 * g_pip;
+  double temperature = temperature_base;
+  int annealing_count = 1;
+  //const double alpha = 0.95;
   random_device rdev;
-  mt19937 gen(rdev());
+  mt19937_64 gen_profit(rdev());
+  mt19937_64 gen_loss(rdev());
+  mt19937_64 gen_threshold(rdev());
+  mt19937_64 gen_temp(rdev());
 
   //auto dist = [&](double t, double val, const tuple<double, double>& range) {
   //  const double d = exp(- 0.23 * t);
@@ -142,17 +147,17 @@ void Search(const boost::property_tree::ptree& prop) {
   };
 
   cout << fixed;
-  double profit = dist_profit(gen);
-  double loss = dist_loss(gen);
-  double threshold = dist_threshold(gen);
+  double profit = dist_profit(gen_profit);
+  double loss = dist_loss(gen_loss);
+  double threshold = dist_threshold(gen_threshold);
   cout << setprecision(4) << "Point [" << 1 / g_pip * make_tuple(profit, loss, threshold) << "]: ";
   double total = fun(profit, loss, threshold);
   cout << setprecision(2) << total / g_pip << endl;
 
   do {
-    const double profit_cand = dist_profit(gen);
-    const double loss_cand = dist_loss(gen);
-    const double threshold_cand = dist_threshold(gen);
+    const double profit_cand = dist_profit(gen_profit);
+    const double loss_cand = dist_loss(gen_loss);
+    const double threshold_cand = dist_threshold(gen_threshold);
     cout << setprecision(4) << "    candidate [" << 1 / g_pip * make_tuple(profit_cand, loss_cand, threshold_cand) << "]: ";
     const double total_cand = fun(profit_cand, loss_cand, threshold_cand);
     cout << setprecision(2) << total_cand / g_pip;
@@ -174,12 +179,12 @@ void Search(const boost::property_tree::ptree& prop) {
       jump(true);
     } else {
       const double p = exp(- dh / temperature) * (1 / (1 + exp(-total)));
-      if (p > dist_temperature(gen)) {
+      if (p > dist_temperature(gen_temp)) {
         jump(false);
       } else {
         cout << setprecision(1) << " skip(" << temperature / g_pip << ")" << endl;
       }
-      temperature *= alpha;
+      temperature = temperature_base / (++annealing_count);
     }
   } while (temperature >= g_pip);
 
