@@ -64,44 +64,44 @@ std::ostream& operator << (std::ostream& out, const std::tuple<double, double, d
 
 const std::tuple<double, double, double> g_rate(0.005, 0.01, 0.000001);
 
-double SubSearch(fxlib::IForecaster* forecaster, const fxlib::fxsequence& seq, const fxlib::ForecastInfo& info, double& profit, double& loss, double& threshold) {
-  using namespace std;
-  auto fun = [&](double p, double l, double t) {
-    cout << ".";
-    return Play(forecaster, seq, info.position, info.timeout, info.window, p, l, t, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
-  };
-  double total = fun(profit, loss, threshold);
-  cout << fixed << setprecision(4) << " point [" << (profit / g_pip) << "," << (loss / g_pip) << "," << threshold << "]: " << (total / g_pip) << endl;
-  auto grad = Grad(fun, profit, loss, threshold);
-  auto dp = g_rate * grad;
-  auto pt = make_tuple(profit, loss, threshold) + dp;
-  double totalt = fun(get<0>(pt), get<1>(pt), get<2>(pt));
-  double eps = abs(total - totalt);
-  auto out = [&]() {
-    cout << fixed << setprecision(4) << "(" << grad << ")->[" << (profit / g_pip) << "," << (loss / g_pip) << "," << threshold << "]: " << (total / g_pip) << " => " << (eps / g_pip) << endl;
-  };
-  profit = get<0>(pt);
-  loss = get<1>(pt);
-  threshold = get<2>(pt);
-  total = totalt;
-  out();
-  while (eps > g_pip / 10) {
-    grad = Grad(fun, profit, loss, threshold);
-    const auto dpt = g_rate * grad + g_momentum * dp;
-    pt = make_tuple(profit, loss, threshold) + dpt;
-    totalt = fun(get<0>(pt), get<1>(pt), get<2>(pt));
-    const double epst = abs(total - totalt);
-    //if (abs(epst) > abs(eps)) break;
-    eps = epst;
-    dp = dpt;
-    profit = get<0>(pt);
-    loss = get<1>(pt);
-    threshold = get<2>(pt);
-    total = totalt;
-    out();
-  }
-  return total;
-}
+//double SubSearch(fxlib::IForecaster* forecaster, const fxlib::fxsequence& seq, const fxlib::ForecastInfo& info, double& profit, double& loss, double& threshold) {
+//  using namespace std;
+//  auto fun = [&](double p, double l, double t) {
+//    cout << ".";
+//    return Play(forecaster, seq, info.position, info.timeout, info.window, p, l, t, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+//  };
+//  double total = fun(profit, loss, threshold);
+//  cout << fixed << setprecision(4) << " point [" << (profit / g_pip) << "," << (loss / g_pip) << "," << threshold << "]: " << (total / g_pip) << endl;
+//  auto grad = Grad(fun, profit, loss, threshold);
+//  auto dp = g_rate * grad;
+//  auto pt = make_tuple(profit, loss, threshold) + dp;
+//  double totalt = fun(get<0>(pt), get<1>(pt), get<2>(pt));
+//  double eps = abs(total - totalt);
+//  auto out = [&]() {
+//    cout << fixed << setprecision(4) << "(" << grad << ")->[" << (profit / g_pip) << "," << (loss / g_pip) << "," << threshold << "]: " << (total / g_pip) << " => " << (eps / g_pip) << endl;
+//  };
+//  profit = get<0>(pt);
+//  loss = get<1>(pt);
+//  threshold = get<2>(pt);
+//  total = totalt;
+//  out();
+//  while (eps > g_pip / 10) {
+//    grad = Grad(fun, profit, loss, threshold);
+//    const auto dpt = g_rate * grad + g_momentum * dp;
+//    pt = make_tuple(profit, loss, threshold) + dpt;
+//    totalt = fun(get<0>(pt), get<1>(pt), get<2>(pt));
+//    const double epst = abs(total - totalt);
+//    //if (abs(epst) > abs(eps)) break;
+//    eps = epst;
+//    dp = dpt;
+//    profit = get<0>(pt);
+//    loss = get<1>(pt);
+//    threshold = get<2>(pt);
+//    total = totalt;
+//    out();
+//  }
+//  return total;
+//}
 }  // namespace
 
 void Search(const boost::property_tree::ptree& prop) {
