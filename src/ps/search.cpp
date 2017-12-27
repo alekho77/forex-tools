@@ -150,7 +150,7 @@ void Search(const boost::property_tree::ptree& prop) {
   double profit = dist_profit(gen_profit);
   double loss = dist_loss(gen_loss);
   double threshold = dist_threshold(gen_threshold);
-  cout << setprecision(4) << "Point [" << 1 / g_pip * make_tuple(profit, loss, threshold) << "]: ";
+  cout << setprecision(4) << "Point [" << make_tuple(profit / g_pip, loss / g_pip, threshold) << "]: ";
   double total = fun(profit, loss, threshold);
   cout << setprecision(2) << total / g_pip << endl;
 
@@ -158,7 +158,7 @@ void Search(const boost::property_tree::ptree& prop) {
     const double profit_cand = dist_profit(gen_profit);
     const double loss_cand = dist_loss(gen_loss);
     const double threshold_cand = dist_threshold(gen_threshold);
-    cout << setprecision(4) << "    candidate [" << 1 / g_pip * make_tuple(profit_cand, loss_cand, threshold_cand) << "]: ";
+    cout << setprecision(4) << "    candidate [" << make_tuple(profit_cand / g_pip, loss_cand / g_pip, threshold_cand) << "]: ";
     const double total_cand = fun(profit_cand, loss_cand, threshold_cand);
     cout << setprecision(2) << total_cand / g_pip;
     const double dh = total - total_cand;
@@ -173,12 +173,12 @@ void Search(const boost::property_tree::ptree& prop) {
       loss = loss_cand;
       threshold = threshold_cand;
       total = total_cand;
-      cout << setprecision(4) << "Point [" << 1 / g_pip * make_tuple(profit, loss, threshold) << "]: " << setprecision(2) << total / g_pip << endl;
+      cout << setprecision(4) << "Point [" << make_tuple(profit / g_pip, loss / g_pip, threshold) << "]: " << setprecision(2) << total / g_pip << endl;
     };
     if (dh < 0) {
       jump(true);
     } else {
-      const double p = exp(- dh / temperature) * (1 / (1 + exp(-total)));
+      const double p = exp(- dh / temperature);
       if (p > dist_temperature(gen_temp)) {
         jump(false);
       } else {
