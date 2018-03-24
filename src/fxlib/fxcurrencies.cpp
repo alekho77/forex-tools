@@ -35,22 +35,21 @@ namespace fxlib {
 #define GBPCHF PAIR(GBP, CHF)
 
 const char* fxcurrencies[] = {USD, EUR, GBP, CHF, JPY, CAD, AUD, NZD};
-const char* fxpairs[] = {EURUSD, GBPUSD, USDCHF, USDJPY, USDCAD, AUDUSD, NZDUSD, EURJPY, EURGBP, EURCHF, GBPJPY, GBPCHF};
+const char* fxpairs[] = {EURUSD, GBPUSD, USDCHF, USDJPY, USDCAD, AUDUSD,
+                         NZDUSD, EURJPY, EURGBP, EURCHF, GBPJPY, GBPCHF};
 
-
-bool IsCurrency(const std::string & curr) {
-  return std::any_of(std::cbegin(fxcurrencies), std::cend(fxcurrencies), [&curr](const auto& c) {
-    return boost::algorithm::iequals(c, curr);
-  });
+bool IsCurrency(const std::string& curr) {
+    return std::any_of(std::cbegin(fxcurrencies), std::cend(fxcurrencies),
+                       [&curr](const auto& c) { return boost::algorithm::iequals(c, curr); });
 }
 
-bool IsPair(const std::string & pair) {
-  if (pair.size() == 6) {
-    const std::string curr1 = pair.substr(0, 3);
-    const std::string curr2 = pair.substr(3, 3);
-    return IsCurrency(curr1) && IsCurrency(curr2);
-  }
-  return false;
+bool IsPair(const std::string& pair) {
+    if (pair.size() == 6) {
+        const std::string curr1 = pair.substr(0, 3);
+        const std::string curr2 = pair.substr(3, 3);
+        return IsCurrency(curr1) && IsCurrency(curr2);
+    }
+    return false;
 }
 
 }  // namespace fxlib

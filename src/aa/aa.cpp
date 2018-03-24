@@ -15,34 +15,34 @@ void Analyze(const boost::property_tree::ptree& prop);
 void Learning(const boost::property_tree::ptree& prop, bool out);
 
 int main(int argc, char* argv[]) {
-  using namespace std;
-  cout << "Forex Analyzer for forecast algorithms." << endl;
+    using namespace std;
+    cout << "Forex Analyzer for forecast algorithms." << endl;
 
-  variables_map vm;
-  if (!TryParseCommandLine(argc, argv, vm)) {
-    return boost::system::errc::invalid_argument;
-  }
-
-  try {
-    if (!vm.count("pip")) {
-      throw invalid_argument("Unknown pip size");
-    }
-    boost::property_tree::ptree prop;
-    boost::property_tree::read_json(g_config.string(), prop);
-    prop.put("pip", g_pip);
-    if (g_analyze_mode) {
-      Analyze(prop);
-    } else if (g_learn_mode) {
-      Learning(prop, !!vm.count("out"));
+    variables_map vm;
+    if (!TryParseCommandLine(argc, argv, vm)) {
+        return boost::system::errc::invalid_argument;
     }
 
-  } catch (const system_error& e) {
-    cout << "[ERROR] " << e.what() << endl;
-    return e.code().value();
-  } catch (const exception& e) {
-    cout << "[ERROR] " << e.what() << endl;
-    return boost::system::errc::operation_canceled;
-  }
+    try {
+        if (!vm.count("pip")) {
+            throw invalid_argument("Unknown pip size");
+        }
+        boost::property_tree::ptree prop;
+        boost::property_tree::read_json(g_config.string(), prop);
+        prop.put("pip", g_pip);
+        if (g_analyze_mode) {
+            Analyze(prop);
+        } else if (g_learn_mode) {
+            Learning(prop, !!vm.count("out"));
+        }
 
-  return boost::system::errc::success;
+    } catch (const system_error& e) {
+        cout << "[ERROR] " << e.what() << endl;
+        return e.code().value();
+    } catch (const exception& e) {
+        cout << "[ERROR] " << e.what() << endl;
+        return boost::system::errc::operation_canceled;
+    }
+
+    return boost::system::errc::success;
 }

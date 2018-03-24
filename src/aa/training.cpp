@@ -11,28 +11,28 @@ extern boost::filesystem::path g_config;
 extern std::string g_algname;
 
 void Training(const boost::property_tree::ptree& prop, bool out) {
-  using namespace std;
-  ofstream fout;
-  if (out) {
-    if (boost::filesystem::is_directory(g_outtxt)) {
-      g_outtxt.append(g_srcbin.stem().string() + "-training.log");
+    using namespace std;
+    ofstream fout;
+    if (out) {
+        if (boost::filesystem::is_directory(g_outtxt)) {
+            g_outtxt.append(g_srcbin.stem().string() + "-training.log");
+        }
+        fout.open(g_outtxt.string());
+        if (!fout) {
+            throw ios_base::failure("Could not open '" + g_outtxt.string() + "'");
+        }
     }
-    fout.open(g_outtxt.string());
-    if (!fout) {
-      throw ios_base::failure("Could not open '" + g_outtxt.string() + "'");
+    auto trainer = fxlib::CreateTrainer(g_algname, prop, cout, out ? fout : cout);
+    if (!trainer) {
+        throw invalid_argument("Could not create algorithm trainer '" + g_algname + "'");
     }
-  }
-  auto trainer = fxlib::CreateTrainer(g_algname, prop, cout, out ? fout : cout);
-  if (!trainer) {
-    throw invalid_argument("Could not create algorithm trainer '" + g_algname + "'");
-  }
-  ifstream fin(g_srcbin.string(), ifstream::binary);
-  if (!fin) {
-    throw ios_base::failure("Could not open '" + g_srcbin.string() + "'");
-  }
-  boost::property_tree::ptree cfg = prop;
-  cfg.erase("params");
-  auto res = trainer->LoadAndTrain(fin);
-  cfg.put_child("params", res);
-  boost::property_tree::write_json(g_config.string(), cfg);
+    ifstream fin(g_srcbin.string(), ifstream::binary);
+    if (!fin) {
+        throw ios_base::failure("Could not open '" + g_srcbin.string() + "'");
+    }
+    boost::property_tree::ptree cfg = prop;
+    cfg.erase("params");
+    auto res = trainer->LoadAndTrain(fin);
+    cfg.put_child("params", res);
+    boost::property_tree::write_json(g_config.string(), cfg);
 }

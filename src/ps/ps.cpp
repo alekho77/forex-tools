@@ -17,35 +17,35 @@ void Full(const boost::property_tree::ptree& prop);
 void Search(const boost::property_tree::ptree& prop);
 
 int main(int argc, char* argv[]) {
-  using namespace std;
-  cout << "Forex Play Simulator." << endl;
+    using namespace std;
+    cout << "Forex Play Simulator." << endl;
 
-  variables_map vm;
-  if (!TryParseCommandLine(argc, argv, vm)) {
-    return boost::system::errc::invalid_argument;
-  }
-
-  try {
-    if (!vm.count("pip")) {
-      throw invalid_argument("Unknown pip size");
+    variables_map vm;
+    if (!TryParseCommandLine(argc, argv, vm)) {
+        return boost::system::errc::invalid_argument;
     }
-    boost::property_tree::ptree prop;
-    boost::property_tree::read_json(g_config.string(), prop);
-    prop.put("pip", g_pip);
-    if (g_quick_mode) {
-      Quick(prop, !!vm.count("out"));
-    } else if (g_full_mode) {
-      Full(prop);
-    } else if (g_search_mode) {
-      Search(prop);
-    }
-  } catch (const system_error& e) {
-    cout << "[ERROR] " << e.what() << endl;
-    return e.code().value();
-  } catch (const exception& e) {
-    cout << "[ERROR] " << e.what() << endl;
-    return boost::system::errc::operation_canceled;
-  }
 
-  return boost::system::errc::success;
+    try {
+        if (!vm.count("pip")) {
+            throw invalid_argument("Unknown pip size");
+        }
+        boost::property_tree::ptree prop;
+        boost::property_tree::read_json(g_config.string(), prop);
+        prop.put("pip", g_pip);
+        if (g_quick_mode) {
+            Quick(prop, !!vm.count("out"));
+        } else if (g_full_mode) {
+            Full(prop);
+        } else if (g_search_mode) {
+            Search(prop);
+        }
+    } catch (const system_error& e) {
+        cout << "[ERROR] " << e.what() << endl;
+        return e.code().value();
+    } catch (const exception& e) {
+        cout << "[ERROR] " << e.what() << endl;
+        return boost::system::errc::operation_canceled;
+    }
+
+    return boost::system::errc::success;
 }

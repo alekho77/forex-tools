@@ -15,5 +15,5 @@ namespace detail {
 // Finam is a Russian website that allows you to get at least two months worth of one-minute Forex data.
 extern const boost::regex rxFinamExportFormat;
 
-}  // namespace fxlib
 }  // namespace detail
+}  // namespace fxlib

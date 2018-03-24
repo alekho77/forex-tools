@@ -10,49 +10,47 @@
 
 namespace fxlib {
 
-//enum class fxforecast : int {
+// enum class fxforecast : int {
 //  unready,   //* An algorithm has not been ready to make forecast, need new data.
 //  positive,  //* An algorithm makes a good forecast regarding data that has been already fed.
 //  negative,  //* An algorithm makes a bad forecast regarding data that has been already fed.
 //  error      //* Data have been incorrect.
 //};
 
-enum class fxposition : int {
-  fxlong,
-  fxshort
-};
+enum class fxposition : int { fxlong, fxshort };
 
 struct ForecastInfo {
-  fxposition position;
-  boost::posix_time::time_duration window;  //* Window size
-  boost::posix_time::time_duration timeout;  //* Timeout of wait
-  double margin;  //* Expected margin, in rate units
+    fxposition position;
+    boost::posix_time::time_duration window;   //* Window size
+    boost::posix_time::time_duration timeout;  //* Timeout of wait
+    double margin;                             //* Expected margin, in rate units
 };
 
 /// Interface for making forecasts.
 struct IForecaster {
-  /// Continuously feeding data into an algorithm.
-  /**
-    Return estimation in the range [0,1):
-    0 - means absolutely negative cast;
-    1 - means 100% positive cast.
-  */
-  virtual double Feed(const fxcandle&) = 0;
-  /// Reset an algorithm to the begin condition in order to start new feeding.
-  virtual void Reset() = 0;
-  /// Get info about an algorithm.
-  virtual ForecastInfo Info() const = 0;
+    /// Continuously feeding data into an algorithm.
+    /**
+      Return estimation in the range [0,1):
+      0 - means absolutely negative cast;
+      1 - means 100% positive cast.
+    */
+    virtual double Feed(const fxcandle&) = 0;
+    /// Reset an algorithm to the begin condition in order to start new feeding.
+    virtual void Reset() = 0;
+    /// Get info about an algorithm.
+    virtual ForecastInfo Info() const = 0;
 
-  virtual ~IForecaster() {}
+    virtual ~IForecaster() {}
 };
 
 struct ITrainer {
-  virtual void PrepareTrainingSet(const fxsequence&, std::ostream&) const = 0;
-  virtual boost::property_tree::ptree LoadAndTrain(std::istream&) = 0;
-  virtual ~ITrainer() {}
+    virtual void PrepareTrainingSet(const fxsequence&, std::ostream&) const = 0;
+    virtual boost::property_tree::ptree LoadAndTrain(std::istream&) = 0;
+    virtual ~ITrainer() {}
 };
 
 std::shared_ptr<IForecaster> CreateForecaster(std::string name, const boost::property_tree::ptree& settings);
-std::shared_ptr<ITrainer> CreateTrainer(std::string name, const boost::property_tree::ptree& settings, std::ostream& headline, std::ostream& log);
+std::shared_ptr<ITrainer> CreateTrainer(std::string name, const boost::property_tree::ptree& settings,
+                                        std::ostream& headline, std::ostream& log);
 
 }  // namespace fxlib
